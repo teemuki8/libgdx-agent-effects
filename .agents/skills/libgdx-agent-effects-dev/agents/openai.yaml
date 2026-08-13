@@ -1,0 +1,4 @@
+interface:
+  display_name: "libGDX Agent Effects Development"
+  short_description: "Develop and verify the bounded effects and shaders library"
+  default_prompt: "Use $libgdx-agent-effects-dev to implement and verify a repository change."
