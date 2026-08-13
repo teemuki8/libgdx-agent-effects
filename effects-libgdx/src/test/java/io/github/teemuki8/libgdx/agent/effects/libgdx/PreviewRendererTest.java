@@ -3,6 +3,9 @@ package io.github.teemuki8.libgdx.agent.effects.libgdx;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.utils.BufferUtils;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectDescription;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsLimits;
 import io.github.teemuki8.libgdx.agent.effects.core.RgbaImage;
@@ -11,6 +14,7 @@ import io.github.teemuki8.libgdx.agent.effects.core.UniformBinding;
 import io.github.teemuki8.libgdx.agent.effects.core.UniformValue;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.nio.IntBuffer;
 import java.util.Arrays;
 import java.util.List;
 import javax.imageio.ImageIO;
@@ -51,6 +55,34 @@ class PreviewRendererTest {
                 RgbaImage out = renderer.render(e);
                 assertEquals(0xff00ff00, out.getPixel(0, 0));
                 assertEquals(0xff00ff00, out.getPixel(15, 15));
+            } finally {
+                renderer.close();
+            }
+        });
+    }
+
+    @Test
+    void multipleSamplersRestoreTheHostsActiveTextureUnit() throws Exception {
+        GdxTestHost.run(() -> {
+            PreviewRenderer renderer = new PreviewRenderer(EffectsLimits.developmentDefaults());
+            try {
+                RgbaImage red = RgbaImage.solid(1, 1, 0xffff0000);
+                RgbaImage blue = RgbaImage.solid(1, 1, 0xff0000ff);
+                ShaderSource src = new ShaderSource(DefaultVertexShader.SOURCE,
+                    "uniform sampler2D u_a; uniform sampler2D u_b;"
+                    + "void main(){gl_FragColor=(texture2D(u_a,vec2(.5))"
+                    + "+texture2D(u_b,vec2(.5)))*.5;}");
+                EffectDescription effect = new EffectDescription("two-samplers", src,
+                    List.of(
+                        new UniformBinding("u_a", new UniformValue.Sampler2d(red)),
+                        new UniformBinding("u_b", new UniformValue.Sampler2d(blue))),
+                    4, 4, 0f);
+                Gdx.gl.glActiveTexture(GL20.GL_TEXTURE3);
+                renderer.render(effect);
+                IntBuffer active = BufferUtils.newIntBuffer(1);
+                Gdx.gl.glGetIntegerv(GL20.GL_ACTIVE_TEXTURE, active);
+                assertEquals(GL20.GL_TEXTURE3, active.get(0),
+                    "preview must restore the host's active texture unit");
             } finally {
                 renderer.close();
             }
