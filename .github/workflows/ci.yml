@@ -41,10 +41,17 @@ jobs:
       - name: Check backend-neutral code on Windows
         if: runner.os == 'Windows'
         shell: pwsh
-        run: .\gradlew.bat clean check javadoc -x :effects-fixtures:test --warning-mode=fail
+        run: .\gradlew.bat clean check javadoc -x :effects-libgdx:test -x :effects-fixtures:test --warning-mode=fail
       - name: Check backend-neutral code on macOS
         if: runner.os == 'macOS'
-        run: ./gradlew clean check javadoc -x :effects-fixtures:test --warning-mode=fail
+        run: ./gradlew clean check javadoc -x :effects-libgdx:test -x :effects-fixtures:test --warning-mode=fail
+      - name: Compile libGDX tests on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: .\gradlew.bat :effects-libgdx:testClasses --warning-mode=fail
+      - name: Compile libGDX tests on macOS
+        if: runner.os == 'macOS'
+        run: ./gradlew :effects-libgdx:testClasses --warning-mode=fail
       - name: Compile native fixture on Windows
         if: runner.os == 'Windows'
         shell: pwsh
