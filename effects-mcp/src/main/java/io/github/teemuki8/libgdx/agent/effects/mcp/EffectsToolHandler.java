@@ -1,0 +1,151 @@
+package io.github.teemuki8.libgdx.agent.effects.mcp;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsJson;
+import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsProtocolService;
+import io.github.teemuki8.libgdx.agent.effects.protocol.Results;
+import io.modelcontextprotocol.json.McpJsonDefaults;
+import io.modelcontextprotocol.spec.McpSchema;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
+
+/**
+ * Maps each MCP call to the effects protocol service.
+ *
+ * <p>{@code effect_capabilities} and {@code effect_list} answer from the closed catalog and
+ * the declared-effect registry. {@code effect_compile}, {@code effect_preview}, and
+ * {@code effect_compare} resolve their named effect(s) through the registry and answer a
+ * typed {@code NOT_AVAILABLE} error for declared effects: this closed server has no render
+ * backend (effects-mcp does not depend on libGDX), so the operations cannot run until the
+ * render fixture wires the full loop.
+ */
+public final class EffectsToolHandler implements AutoCloseable {
+    private static final ObjectMapper MAPPER = EffectsJson.mapper();
+    private static final TypeReference<LinkedHashMap<String, Object>> MAP_TYPE =
+            new TypeReference<>() {};
+
+    private final EffectsProtocolService protocol;
+    private final EffectsToolCatalog catalog;
+    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    private final Scheduler scheduler = Schedulers.fromExecutorService(executor);
+
+    /** Creates a handler over one protocol service. */
+    public EffectsToolHandler(EffectsProtocolService protocol) {
+        this(protocol, new EffectsToolCatalog());
+    }
+
+    EffectsToolHandler(EffectsProtocolService protocol, EffectsToolCatalog catalog) {
+        this.protocol = Objects.requireNonNull(protocol, "protocol");
+        this.catalog = Objects.requireNonNull(catalog, "catalog");
+    }
+
+    /** Validates and invokes one approved tool asynchronously. */
+    public Mono<McpSchema.CallToolResult> handle(McpSchema.CallToolRequest call) {
+        Objects.requireNonNull(call, "call");
+        return Mono.fromCallable(() -> handleSynchronously(call)).subscribeOn(scheduler);
+    }
+
+    private McpSchema.CallToolResult handleSynchronously(McpSchema.CallToolRequest call) {
+        Map<String, Object> arguments = call.arguments() == null ? Map.of() : call.arguments();
+        McpSchema.Tool tool;
+        try {
+            tool = catalog.tool(call.name());
+        } catch (IllegalArgumentException failure) {
+            return error("INVALID_QUERY", "unknown effects tool");
+        }
+        var validation =
+                McpJsonDefaults.getSchemaValidator().validate(tool.inputSchema(), arguments);
+        if (!validation.valid()) {
+            return error("INVALID_QUERY", "arguments do not match the closed tool schema");
+        }
+        try {
+            return call(call.name(), arguments);
+        } catch (RuntimeException failure) {
+            return error("INVALID_QUERY", "arguments could not be decoded");
+        } catch (JsonProcessingException failure) {
+            return error("INTERNAL_ERROR", "result could not be encoded");
+        }
+    }
+
+    private McpSchema.CallToolResult call(String toolName, Map<String, Object> arguments)
+            throws JsonProcessingException {
+        return switch (toolName) {
+            case "effect_capabilities" -> result(new Results.CapabilitiesResult(
+                    catalog.tools().stream().map(McpSchema.Tool::name).toList()));
+            case "effect_list" -> result(new Results.ListResult(protocol.effectNames()));
+            case "effect_compile" -> compile(arguments);
+            case "effect_preview" -> preview(arguments);
+            case "effect_compare" -> compare(arguments);
+            default -> throw new IllegalArgumentException("unknown effects tool");
+        };
+    }
+
+    private McpSchema.CallToolResult compile(Map<String, Object> arguments) {
+        String name = string(arguments, "effectName");
+        if (protocol.effect(name) == null) {
+            return error("UNKNOWN_EFFECT", "effect is not declared: " + name);
+        }
+        return error("NOT_AVAILABLE",
+                "effect_compile needs the render fixture, not wired in v0.1");
+    }
+
+    private McpSchema.CallToolResult preview(Map<String, Object> arguments) {
+        String name = string(arguments, "effectName");
+        if (protocol.effect(name) == null) {
+            return error("UNKNOWN_EFFECT", "effect is not declared: " + name);
+        }
+        return error("NOT_AVAILABLE",
+                "effect_preview needs the render fixture, not wired in v0.1");
+    }
+
+    private McpSchema.CallToolResult compare(Map<String, Object> arguments) {
+        String reference = string(arguments, "referenceName");
+        String actual = string(arguments, "actualName");
+        if (protocol.effect(reference) == null) {
+            return error("UNKNOWN_EFFECT", "effect is not declared: " + reference);
+        }
+        if (protocol.effect(actual) == null) {
+            return error("UNKNOWN_EFFECT", "effect is not declared: " + actual);
+        }
+        return error("NOT_AVAILABLE",
+                "effect_compare needs the render fixture, not wired in v0.1");
+    }
+
+    private static McpSchema.CallToolResult result(Object value) throws JsonProcessingException {
+        LinkedHashMap<String, Object> content = MAPPER.convertValue(value, MAP_TYPE);
+        return McpSchema.CallToolResult.builder()
+                .structuredContent(Map.copyOf(content))
+                .addTextContent(MAPPER.writeValueAsString(content))
+                .isError(false)
+                .build();
+    }
+
+    private static McpSchema.CallToolResult error(String code, String message) {
+        Map<String, Object> content =
+                Map.of("kind", "error", "code", code, "message", message);
+        return McpSchema.CallToolResult.builder()
+                .structuredContent(content)
+                .addTextContent(code + ": " + message)
+                .isError(true)
+                .build();
+    }
+
+    private static String string(Map<String, Object> values, String key) {
+        Object value = values.get(key);
+        return value == null ? null : (String) value;
+    }
+
+    /** Stops owned request dispatch. */
+    @Override public void close() {
+        scheduler.dispose();
+        executor.shutdownNow();
+    }
+}
