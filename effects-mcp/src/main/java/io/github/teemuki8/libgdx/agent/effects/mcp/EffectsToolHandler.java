@@ -110,7 +110,9 @@ public final class EffectsToolHandler implements AutoCloseable {
             return Mono.just(error("NOT_AVAILABLE",
                     "effect_compile needs the render fixture, not wired in v0.1"));
         }
-        return Mono.fromCompletionStage(backend.compile(name)).flatMap(this::resultAsync);
+        return Mono.fromCompletionStage(backend.compile(name))
+                .publishOn(scheduler)
+                .flatMap(this::resultAsync);
     }
 
     private Mono<McpSchema.CallToolResult> preview(Map<String, Object> arguments) {
@@ -123,7 +125,9 @@ public final class EffectsToolHandler implements AutoCloseable {
             return Mono.just(error("NOT_AVAILABLE",
                     "effect_preview needs the render fixture, not wired in v0.1"));
         }
-        return Mono.fromCompletionStage(backend.preview(name)).flatMap(this::resultAsync);
+        return Mono.fromCompletionStage(backend.preview(name))
+                .publishOn(scheduler)
+                .flatMap(this::resultAsync);
     }
 
     private Mono<McpSchema.CallToolResult> compare(Map<String, Object> arguments) {
@@ -142,6 +146,7 @@ public final class EffectsToolHandler implements AutoCloseable {
         }
         return Mono.fromCompletionStage(
                 backend.compare(reference, actual, DEFAULT_COMPARE_SPEC))
+                .publishOn(scheduler)
                 .flatMap(this::resultAsync);
     }
 

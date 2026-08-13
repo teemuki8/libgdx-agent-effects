@@ -26,6 +26,10 @@ backend captures its owner thread at construction: owner-thread calls complete i
 from MCP post one bounded operation through `Gdx.app.postRunnable`. `EffectsToolHandler` composes
 the returned stage into its `Mono`; it never blocks waiting for GL work.
 
+The fixture admits at most 64 queued off-owner render operations. Cancellation before a queued
+operation starts skips that GL work. The handler resumes encoded results and downstream delivery on
+its virtual-thread scheduler rather than the stage-completion thread.
+
 Input/schema failures remain `INVALID_QUERY`. `EffectsException` failures become typed MCP errors
 whose code is the stable exception kind. Unexpected backend failures become `INTERNAL_ERROR` with
 no stack trace in the result.

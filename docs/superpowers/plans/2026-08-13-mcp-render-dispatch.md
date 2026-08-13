@@ -41,6 +41,9 @@ Run `./gradlew :effects-mcp:test --tests '*EffectsToolHandlerTest' --rerun-tasks
 Change each `EffectsBackend` method to return `CompletionStage<Results.*Result>` and compose that
 stage from `EffectsToolHandler` without calling `block`, `join`, or `get`.
 
+After the backend stage, preserve the handler scheduler as the boundary for result encoding and
+downstream delivery so the GL thread never performs transport work.
+
 - [ ] **Step 3: Preserve stable backend failures**
 
 Add a test backend that completes exceptionally with `EffectsException(WRONG_THREAD, ...)` and
@@ -49,7 +52,8 @@ assert an MCP error code of `WRONG_THREAD`; map other failures to `INTERNAL_ERRO
 - [ ] **Step 4: Schedule fixture GL operations**
 
 Capture the fixture backend owner thread. Complete inline on that thread; otherwise post the
-operation with `Gdx.app.postRunnable` and complete a `CompletableFuture`.
+operation through a dispatcher capped at 64 pending calls. Skip a queued operation when its future
+was canceled before execution and reject excess admission with `LIMIT_EXCEEDED`.
 
 - [ ] **Step 5: Verify focused and native paths**
 

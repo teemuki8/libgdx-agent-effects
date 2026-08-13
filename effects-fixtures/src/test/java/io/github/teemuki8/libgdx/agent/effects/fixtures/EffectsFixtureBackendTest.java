@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.badlogic.gdx.Gdx;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectDescription;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsLimits;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderSource;
@@ -14,7 +15,9 @@ import io.github.teemuki8.libgdx.agent.effects.protocol.Results;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
 class EffectsFixtureBackendTest {
 
@@ -68,11 +71,22 @@ class EffectsFixtureBackendTest {
             return handler.handle(request)
                 .doOnNext(result -> assertFalse(result.isError(), result.content().toString()))
                 .then()
-                .doFinally(signal -> {
-                    handler.close();
-                    backend.close();
-                })
+                .then(Mono.defer(() -> closeOnRenderThread(backend)))
+                .doFinally(signal -> handler.close())
                 .toFuture();
         });
+    }
+
+    private static Mono<Void> closeOnRenderThread(EffectsFixtureBackend backend) {
+        CompletableFuture<Void> closed = new CompletableFuture<>();
+        Gdx.app.postRunnable(() -> {
+            try {
+                backend.close();
+                closed.complete(null);
+            } catch (RuntimeException failure) {
+                closed.completeExceptionally(failure);
+            }
+        });
+        return Mono.fromFuture(closed);
     }
 }

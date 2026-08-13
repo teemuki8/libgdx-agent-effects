@@ -1,6 +1,8 @@
 package io.github.teemuki8.libgdx.agent.effects.mcp;
 
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.teemuki8.libgdx.agent.effects.core.EffectDescription;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
@@ -15,22 +17,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class EffectsToolHandlerTest {
     @Test
-    void invokesWiredBackendOnItsOwnerThread() {
+    void leavesBackendOwnerThreadBeforeEncodingAndDelivery() throws Exception {
         ExecutorService renderExecutor = Executors.newSingleThreadExecutor();
         AtomicReference<Thread> invoked = new AtomicReference<>();
+        AtomicReference<Thread> response = new AtomicReference<>();
+        AtomicReference<CompletableFuture<Results.CompileResult>> backendResult =
+            new AtomicReference<>();
+        CountDownLatch requested = new CountDownLatch(1);
         EffectsBackend backend = new EffectsBackend() {
             @Override public CompletionStage<Results.CompileResult> compile(String effectName) {
-                return CompletableFuture.supplyAsync(() -> {
-                    invoked.set(Thread.currentThread());
-                    return compileResult(effectName);
-                }, renderExecutor);
+                CompletableFuture<Results.CompileResult> result = new CompletableFuture<>();
+                backendResult.set(result);
+                requested.countDown();
+                return result;
             }
 
             @Override public CompletionStage<Results.PreviewResult> preview(String effectName) {
@@ -46,12 +54,25 @@ class EffectsToolHandlerTest {
             new ShaderSource("void main(){}", "void main(){}"), List.of(), 1, 1, 0f);
         EffectsProtocolService protocol = new EffectsProtocolService()
             .declare(effect).backend(backend);
-        Thread owner = CompletableFuture.supplyAsync(Thread::currentThread, renderExecutor).join();
         try (renderExecutor; EffectsToolHandler handler = new EffectsToolHandler(protocol)) {
-            handler.handle(request("effect_compile", Map.of("effectName", "red"))).block();
+            CompletableFuture<McpSchema.CallToolResult> responseResult = handler.handle(
+                request("effect_compile", Map.of("effectName", "red")))
+                .doOnNext(ignored -> response.set(Thread.currentThread()))
+                .toFuture();
+            assertTrue(requested.await(10, TimeUnit.SECONDS), "backend was not invoked");
+            Thread owner = CompletableFuture.supplyAsync(() -> {
+                invoked.set(Thread.currentThread());
+                backendResult.get().complete(compileResult("red"));
+                return Thread.currentThread();
+            }, renderExecutor).join();
+            responseResult.join();
+            assertSame(owner, invoked.get(),
+                "render backend must complete on the thread that owns its resources");
+            assertNotSame(owner, response.get(),
+                "result encoding and downstream delivery must leave the render thread");
+            assertTrue(response.get().isVirtual(),
+                "response must resume on the handler's virtual-thread scheduler");
         }
-        assertSame(owner, invoked.get(),
-            "render backend must run on the thread that owns its resources");
     }
 
     @Test
