@@ -33,4 +33,31 @@ class ShaderDiagnosticParserTest {
             List.of(), List.of(), EffectsLimits.developmentDefaults());
         assertEquals(EffectsLimits.developmentDefaults().maxDiagnosticChars(), d.infoLog().length());
     }
+
+    @Test
+    void boundsMessageCount() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 1000; i++) {
+            sb.append("0:").append(i + 1).append(": error on line ").append(i).append('\n');
+        }
+        ShaderDiagnostic d = new ShaderDiagnosticParser().parse(false, sb.toString(),
+            List.of(), List.of(), EffectsLimits.developmentDefaults());
+        assertEquals(256, d.messages().size());
+    }
+
+    @Test
+    void truncatesLongMessageText() {
+        EffectsLimits limits = EffectsLimits.developmentDefaults();
+        StringBuilder sb = new StringBuilder("0:7: ");
+        for (int i = 0; i <= limits.maxDiagnosticChars(); i++) {
+            sb.append('x');
+        }
+        ShaderDiagnostic d = new ShaderDiagnosticParser().parse(false, sb.toString(),
+            List.of(), List.of(), limits);
+        assertEquals(1, d.messages().size());
+        DiagnosticMessage m = d.messages().get(0);
+        assertEquals(DiagnosticSeverity.WARNING, m.severity());
+        assertEquals(7, m.line());
+        assertEquals(limits.maxDiagnosticChars(), m.text().length());
+    }
 }
