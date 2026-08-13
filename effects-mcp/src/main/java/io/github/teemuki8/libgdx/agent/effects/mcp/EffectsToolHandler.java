@@ -81,9 +81,24 @@ public final class EffectsToolHandler implements AutoCloseable {
                     "arguments do not match the closed tool schema"));
         }
         try {
-            return call(call.name(), arguments);
+            validateDecodedArguments(call.name(), arguments);
         } catch (ClassCastException | IllegalArgumentException failure) {
             return Mono.just(error("INVALID_QUERY", "arguments could not be decoded"));
+        }
+        return call(call.name(), arguments);
+    }
+
+    private static void validateDecodedArguments(
+            String toolName, Map<String, Object> arguments) {
+        switch (toolName) {
+            case "effect_compile", "effect_preview" -> string(arguments, "effectName");
+            case "effect_compare" -> {
+                string(arguments, "referenceName");
+                string(arguments, "actualName");
+            }
+            default -> {
+                // Tools without arguments have nothing further to decode.
+            }
         }
     }
 

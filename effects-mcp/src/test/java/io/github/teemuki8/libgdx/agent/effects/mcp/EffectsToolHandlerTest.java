@@ -92,6 +92,21 @@ class EffectsToolHandlerTest {
     }
 
     @Test
+    void synchronousBackendArgumentFailureIsInternal() {
+        EffectsBackend backend = new CompileBackend() {
+            @Override public CompletionStage<Results.CompileResult> compile(String effectName) {
+                throw new IllegalArgumentException("backend rejected its own state");
+            }
+        };
+        EffectsProtocolService protocol = protocol(backend);
+        try (EffectsToolHandler handler = new EffectsToolHandler(protocol)) {
+            McpSchema.CallToolResult result = handler.handle(
+                request("effect_compile", Map.of("effectName", "red"))).block();
+            assertErrorCode(result, "INTERNAL_ERROR");
+        }
+    }
+
+    @Test
     void declaredEffectWithoutBackendRemainsNotAvailable() {
         EffectsProtocolService protocol = protocol(null);
         try (EffectsToolHandler handler = new EffectsToolHandler(protocol)) {
