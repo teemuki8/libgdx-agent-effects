@@ -7,6 +7,8 @@ import io.github.teemuki8.libgdx.agent.effects.core.EffectDescription;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsLimits;
 import io.github.teemuki8.libgdx.agent.effects.core.RgbaImage;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderSource;
+import io.github.teemuki8.libgdx.agent.effects.core.UniformBinding;
+import io.github.teemuki8.libgdx.agent.effects.core.UniformValue;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
@@ -27,6 +29,28 @@ class PreviewRendererTest {
                 RgbaImage b = renderer.render(e);
                 assertEquals(0xffff0000, a.getPixel(0, 0));
                 assertArrayEquals(a.pixels(), b.pixels());
+            } finally {
+                renderer.close();
+            }
+        });
+    }
+
+    @Test
+    void sampler2dUniformUploadsTextureAndSamplesKnownColor() throws Exception {
+        GdxTestHost.run(() -> {
+            PreviewRenderer renderer = new PreviewRenderer(EffectsLimits.developmentDefaults());
+            try {
+                RgbaImage texture = RgbaImage.solid(2, 2, 0xff00ff00);
+                UniformBinding binding = new UniformBinding("u_tex",
+                    new UniformValue.Sampler2d(texture));
+                ShaderSource src = new ShaderSource(DefaultVertexShader.SOURCE,
+                    "uniform sampler2D u_tex;\n"
+                    + "void main(){gl_FragColor=texture2D(u_tex, vec2(0.5, 0.5));}");
+                EffectDescription e = new EffectDescription("sampled", src, List.of(binding),
+                    16, 16, 0f);
+                RgbaImage out = renderer.render(e);
+                assertEquals(0xff00ff00, out.getPixel(0, 0));
+                assertEquals(0xff00ff00, out.getPixel(15, 15));
             } finally {
                 renderer.close();
             }

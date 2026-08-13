@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import io.github.teemuki8.libgdx.agent.effects.core.ActiveAttribute;
 import io.github.teemuki8.libgdx.agent.effects.core.ActiveUniform;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectDescription;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsLimits;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderDiagnostic;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderDiagnosticParser;
@@ -16,6 +17,7 @@ import java.util.Objects;
 public final class EffectCompiler {
 
     private final EffectsLimits limits;
+    private final Thread ownerThread = Thread.currentThread();
     private final ShaderDiagnosticParser parser = new ShaderDiagnosticParser();
 
     public EffectCompiler(EffectsLimits limits) {
@@ -23,6 +25,10 @@ public final class EffectCompiler {
     }
 
     public CompiledEffect compile(EffectDescription effect) {
+        if (Thread.currentThread() != ownerThread) {
+            throw new EffectsException(EffectsException.Kind.WRONG_THREAD,
+                "EffectCompiler must be used on its owning render thread");
+        }
         effect.validate(limits);
         ShaderProgram program = new ShaderProgram(
             effect.shader().vertex(), effect.shader().fragment());

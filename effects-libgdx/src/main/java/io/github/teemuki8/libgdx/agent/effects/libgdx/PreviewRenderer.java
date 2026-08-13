@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.VertexAttribute;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
@@ -15,6 +16,8 @@ import io.github.teemuki8.libgdx.agent.effects.core.EffectsLimits;
 import io.github.teemuki8.libgdx.agent.effects.core.RgbaImage;
 import io.github.teemuki8.libgdx.agent.effects.core.UniformBinding;
 import io.github.teemuki8.libgdx.agent.effects.core.UniformValue;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /** Deterministic off-screen render of one effect to a bounded FrameBuffer. Render-thread confined. */
@@ -26,6 +29,7 @@ public final class PreviewRenderer implements AutoCloseable {
     };
 
     private final EffectsLimits limits;
+    private final Thread ownerThread = Thread.currentThread();
     private final EffectCompiler compiler;
     private final Mesh fullscreenQuad;
 
@@ -38,6 +42,10 @@ public final class PreviewRenderer implements AutoCloseable {
     }
 
     public RgbaImage render(EffectDescription effect) {
+        if (Thread.currentThread() != ownerThread) {
+            throw new EffectsException(EffectsException.Kind.WRONG_THREAD,
+                "PreviewRenderer must be used on its owning render thread");
+        }
         effect.validate(limits);
         CompiledEffect compiled = compiler.compile(effect);
         if (!compiled.compiled()) {
@@ -47,12 +55,13 @@ public final class PreviewRenderer implements AutoCloseable {
         ShaderProgram program = compiled.program();
         FrameBuffer fbo = new FrameBuffer(Pixmap.Format.RGBA8888,
             effect.renderWidth(), effect.renderHeight(), false);
+        List<Texture> textures = new ArrayList<>();
         try {
             fbo.begin();
             Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
             program.bind();
-            bindUniforms(program, effect);
+            bindUniforms(program, effect, textures);
             fullscreenQuad.bind(program);
             fullscreenQuad.render(program, GL20.GL_TRIANGLES);
             fullscreenQuad.unbind(program);
@@ -61,12 +70,16 @@ public final class PreviewRenderer implements AutoCloseable {
             return toRgbaImage(rgba, effect.renderWidth(), effect.renderHeight());
         } finally {
             fbo.end();
+            for (Texture texture : textures) {
+                texture.dispose();
+            }
             program.dispose();
             fbo.dispose();
         }
     }
 
-    private void bindUniforms(ShaderProgram program, EffectDescription effect) {
+    private void bindUniforms(ShaderProgram program, EffectDescription effect,
+            List<Texture> textures) {
         if (program.hasUniform("u_time")) {
             program.setUniformf("u_time", effect.timeSeconds());
         }
@@ -74,12 +87,14 @@ public final class PreviewRenderer implements AutoCloseable {
             program.setUniformf("u_resolution",
                 (float) effect.renderWidth(), (float) effect.renderHeight());
         }
+        int nextTextureUnit = 0;
         for (UniformBinding binding : effect.uniforms()) {
-            bindUniform(program, binding);
+            nextTextureUnit = bindUniform(program, binding, nextTextureUnit, textures);
         }
     }
 
-    private void bindUniform(ShaderProgram program, UniformBinding binding) {
+    private int bindUniform(ShaderProgram program, UniformBinding binding, int nextTextureUnit,
+            List<Texture> textures) {
         UniformValue value = binding.value();
         String name = binding.name();
         if (value instanceof UniformValue.Float f) {
@@ -94,9 +109,45 @@ public final class PreviewRenderer implements AutoCloseable {
             program.setUniformf(name, v.x(), v.y(), v.z(), v.w());
         } else if (value instanceof UniformValue.Mat4 m) {
             program.setUniformMatrix(name, new com.badlogic.gdx.math.Matrix4(m.values()));
-        } else {
-            throw new EffectsException(EffectsException.Kind.INVALID_EFFECT,
-                "sampler2d uniforms are not supported in v0.1 preview");
+        } else if (value instanceof UniformValue.Sampler2d sampler) {
+            return bindSampler(program, name, sampler.image(), nextTextureUnit, textures);
+        }
+        return nextTextureUnit;
+    }
+
+    /**
+     * Uploads one {@code sampler2d} input as a texture on the given unit and binds the unit to
+     * the uniform. The texture is owned by the caller ({@link #render(EffectDescription)} disposes
+     * every texture created for a render in its finally block).
+     */
+    private int bindSampler(ShaderProgram program, String name, RgbaImage image, int unit,
+            List<Texture> textures) {
+        if ((long) image.width() * image.height() > limits.maxTexturePixels()) {
+            throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
+                "sampler2d input exceeds maxTexturePixels");
+        }
+        Pixmap pixmap = new Pixmap(image.width(), image.height(), Pixmap.Format.RGBA8888);
+        try {
+            pixmap.setBlending(Pixmap.Blending.None);
+            int width = image.width();
+            int[] pixels = image.pixels();
+            for (int y = 0; y < image.height(); y++) {
+                for (int x = 0; x < width; x++) {
+                    int argb = pixels[y * width + x];
+                    // gdx2d stores RGBA8888 memory as [A,R,G,B] for the 0xAARRGGBB packing;
+                    // the GL upload path expects [R,G,B,A], i.e. libGDX's 0xRRGGBBAA packing
+                    // (Color.rgba8888). drawPixel converts the packed value to memory bytes.
+                    pixmap.drawPixel(x, y,
+                        ((argb << 8) & 0xFFFFFF00) | ((argb >>> 24) & 0xFF));
+                }
+            }
+            Texture texture = new Texture(pixmap);
+            textures.add(texture);
+            texture.bind(unit);
+            program.setUniformi(name, unit);
+            return unit + 1;
+        } finally {
+            pixmap.dispose();
         }
     }
 
