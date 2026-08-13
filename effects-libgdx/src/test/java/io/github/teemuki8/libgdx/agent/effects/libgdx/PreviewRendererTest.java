@@ -2,11 +2,13 @@ package io.github.teemuki8.libgdx.agent.effects.libgdx;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.utils.BufferUtils;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectDescription;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsLimits;
 import io.github.teemuki8.libgdx.agent.effects.core.RgbaImage;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderSource;
@@ -83,6 +85,40 @@ class PreviewRendererTest {
                 Gdx.gl.glGetIntegerv(GL20.GL_ACTIVE_TEXTURE, active);
                 assertEquals(GL20.GL_TEXTURE3, active.get(0),
                     "preview must restore the host's active texture unit");
+            } finally {
+                renderer.close();
+            }
+        });
+    }
+
+    @Test
+    void samplerFailureRestoresTheHostsActiveTextureUnit() throws Exception {
+        GdxTestHost.run(() -> {
+            EffectsLimits limits = new EffectsLimits(64 * 1024, 64, 16, 1,
+                16 * 1024, 2048, 2048, 32);
+            PreviewRenderer renderer = new PreviewRenderer(limits);
+            try {
+                RgbaImage allowed = RgbaImage.solid(1, 1, 0xffff0000);
+                RgbaImage oversized = RgbaImage.solid(2, 1, 0xff0000ff);
+                ShaderSource src = new ShaderSource(DefaultVertexShader.SOURCE,
+                    "uniform sampler2D u_a; uniform sampler2D u_b;"
+                    + "void main(){gl_FragColor=texture2D(u_a,vec2(.5))"
+                    + "+texture2D(u_b,vec2(.5));}");
+                EffectDescription effect = new EffectDescription("oversized-sampler", src,
+                    List.of(
+                        new UniformBinding("u_a", new UniformValue.Sampler2d(allowed)),
+                        new UniformBinding("u_b", new UniformValue.Sampler2d(oversized))),
+                    4, 4, 0f);
+                Gdx.gl.glActiveTexture(GL20.GL_TEXTURE3);
+
+                EffectsException failure = assertThrows(EffectsException.class,
+                    () -> renderer.render(effect));
+
+                assertEquals(EffectsException.Kind.LIMIT_EXCEEDED, failure.kind());
+                IntBuffer active = BufferUtils.newIntBuffer(1);
+                Gdx.gl.glGetIntegerv(GL20.GL_ACTIVE_TEXTURE, active);
+                assertEquals(GL20.GL_TEXTURE3, active.get(0),
+                    "failed preview must restore the host's active texture unit");
             } finally {
                 renderer.close();
             }

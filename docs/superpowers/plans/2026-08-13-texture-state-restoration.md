@@ -27,16 +27,16 @@ exact prior enum in the existing render cleanup path.
 - Consumes: the host's current `GL_ACTIVE_TEXTURE` enum.
 - Produces: unchanged host active-texture state after success or failure.
 
-- [ ] **Step 1: Add and run the two-sampler regression**
+- [x] **Step 1: Add and run the two-sampler regression**
 
 Render with `u_a` and `u_b`, query `GL_ACTIVE_TEXTURE`, and assert the hand-set prior unit remains
 active. Run the focused test under Xvfb and expect the assertion to fail with the last sampler unit.
 
-- [ ] **Step 2: Implement exact restoration**
+- [x] **Step 2: Implement exact restoration**
 
 Use a direct one-int buffer with `glGetIntegerv(GL_ACTIVE_TEXTURE, ...)`, then call
 `glActiveTexture(previous)` in cleanup before returning control to the host.
 
-- [ ] **Step 3: Verify focused and affected gates**
+- [x] **Step 3: Verify focused and affected gates**
 
 Run the libGDX, fixture, and check gates from the issue, followed by `git diff --check`.

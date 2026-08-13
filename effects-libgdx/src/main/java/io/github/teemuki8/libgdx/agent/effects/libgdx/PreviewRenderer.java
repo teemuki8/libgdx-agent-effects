@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.VertexAttribute;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.badlogic.gdx.utils.BufferUtils;
 import com.badlogic.gdx.utils.ScreenUtils;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectDescription;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
@@ -16,6 +17,7 @@ import io.github.teemuki8.libgdx.agent.effects.core.EffectsLimits;
 import io.github.teemuki8.libgdx.agent.effects.core.RgbaImage;
 import io.github.teemuki8.libgdx.agent.effects.core.UniformBinding;
 import io.github.teemuki8.libgdx.agent.effects.core.UniformValue;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -56,6 +58,9 @@ public final class PreviewRenderer implements AutoCloseable {
         FrameBuffer fbo = new FrameBuffer(Pixmap.Format.RGBA8888,
             effect.renderWidth(), effect.renderHeight(), false);
         List<Texture> textures = new ArrayList<>();
+        IntBuffer activeTexture = BufferUtils.newIntBuffer(1);
+        Gdx.gl.glGetIntegerv(GL20.GL_ACTIVE_TEXTURE, activeTexture);
+        int previousActiveTexture = activeTexture.get(0);
         try {
             fbo.begin();
             Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
@@ -69,12 +74,16 @@ public final class PreviewRenderer implements AutoCloseable {
                 effect.renderWidth(), effect.renderHeight(), false);
             return toRgbaImage(rgba, effect.renderWidth(), effect.renderHeight());
         } finally {
-            fbo.end();
-            for (Texture texture : textures) {
-                texture.dispose();
+            try {
+                fbo.end();
+                for (Texture texture : textures) {
+                    texture.dispose();
+                }
+                program.dispose();
+                fbo.dispose();
+            } finally {
+                Gdx.gl.glActiveTexture(previousActiveTexture);
             }
-            program.dispose();
-            fbo.dispose();
         }
     }
 
