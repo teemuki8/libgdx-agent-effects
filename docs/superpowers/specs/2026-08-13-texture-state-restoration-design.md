@@ -20,5 +20,6 @@ after preview rendering. That mutable GL selector belongs to the host applicatio
 
 `PreviewRenderer.render` snapshots only `GL_ACTIVE_TEXTURE` before sampler binding. Its existing
 cleanup restores that value before returning or propagating a render failure. No other GL state is
-captured or reset. A real two-sampler Xvfb test proves the previous selector is restored while
-existing pixel-correctness tests continue to prove sampler binding itself.
+captured or reset. Texture upload selects its assigned unit before construction so a later upload
+cannot unbind an earlier sampler. A real two-sampler Xvfb test proves both pixel-correct unit
+assignment and restoration of the previous selector.

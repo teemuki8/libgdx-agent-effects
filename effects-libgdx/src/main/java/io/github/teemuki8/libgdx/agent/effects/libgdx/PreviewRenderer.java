@@ -150,6 +150,7 @@ public final class PreviewRenderer implements AutoCloseable {
                         ((argb << 8) & 0xFFFFFF00) | ((argb >>> 24) & 0xFF));
                 }
             }
+            Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0 + unit);
             Texture texture = new Texture(pixmap);
             textures.add(texture);
             texture.bind(unit);

@@ -80,7 +80,9 @@ class PreviewRendererTest {
                         new UniformBinding("u_b", new UniformValue.Sampler2d(blue))),
                     4, 4, 0f);
                 Gdx.gl.glActiveTexture(GL20.GL_TEXTURE3);
-                renderer.render(effect);
+                RgbaImage output = renderer.render(effect);
+                assertEquals(0xff800080, output.getPixel(0, 0),
+                    "each sampler must remain bound to its assigned texture unit");
                 IntBuffer active = BufferUtils.newIntBuffer(1);
                 Gdx.gl.glGetIntegerv(GL20.GL_ACTIVE_TEXTURE, active);
                 assertEquals(GL20.GL_TEXTURE3, active.get(0),
