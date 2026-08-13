@@ -3,6 +3,7 @@ package io.github.teemuki8.libgdx.agent.effects.mcp;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
 import io.github.teemuki8.libgdx.agent.effects.core.PixelComparisonSpec;
 import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsBackend;
 import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsJson;
@@ -14,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import reactor.core.publisher.Mono;
@@ -58,37 +60,54 @@ public final class EffectsToolHandler implements AutoCloseable {
     /** Validates and invokes one approved tool asynchronously. */
     public Mono<McpSchema.CallToolResult> handle(McpSchema.CallToolRequest call) {
         Objects.requireNonNull(call, "call");
-        return Mono.fromCallable(() -> handleSynchronously(call)).subscribeOn(scheduler);
+        return Mono.defer(() -> handleAsynchronously(call))
+                .subscribeOn(scheduler)
+                .onErrorResume(failure -> Mono.just(failure(failure)));
     }
 
-    private McpSchema.CallToolResult handleSynchronously(McpSchema.CallToolRequest call) {
+    private Mono<McpSchema.CallToolResult> handleAsynchronously(
+            McpSchema.CallToolRequest call) {
         Map<String, Object> arguments = call.arguments() == null ? Map.of() : call.arguments();
         McpSchema.Tool tool;
         try {
             tool = catalog.tool(call.name());
         } catch (IllegalArgumentException failure) {
-            return error("INVALID_QUERY", "unknown effects tool");
+            return Mono.just(error("INVALID_QUERY", "unknown effects tool"));
         }
         var validation =
                 McpJsonDefaults.getSchemaValidator().validate(tool.inputSchema(), arguments);
         if (!validation.valid()) {
-            return error("INVALID_QUERY", "arguments do not match the closed tool schema");
+            return Mono.just(error("INVALID_QUERY",
+                    "arguments do not match the closed tool schema"));
         }
         try {
-            return call(call.name(), arguments);
-        } catch (RuntimeException failure) {
-            return error("INVALID_QUERY", "arguments could not be decoded");
-        } catch (JsonProcessingException failure) {
-            return error("INTERNAL_ERROR", "result could not be encoded");
+            validateDecodedArguments(call.name(), arguments);
+        } catch (ClassCastException | IllegalArgumentException failure) {
+            return Mono.just(error("INVALID_QUERY", "arguments could not be decoded"));
+        }
+        return call(call.name(), arguments);
+    }
+
+    private static void validateDecodedArguments(
+            String toolName, Map<String, Object> arguments) {
+        switch (toolName) {
+            case "effect_compile", "effect_preview" -> string(arguments, "effectName");
+            case "effect_compare" -> {
+                string(arguments, "referenceName");
+                string(arguments, "actualName");
+            }
+            default -> {
+                // Tools without arguments have nothing further to decode.
+            }
         }
     }
 
-    private McpSchema.CallToolResult call(String toolName, Map<String, Object> arguments)
-            throws JsonProcessingException {
+    private Mono<McpSchema.CallToolResult> call(
+            String toolName, Map<String, Object> arguments) {
         return switch (toolName) {
-            case "effect_capabilities" -> result(new Results.CapabilitiesResult(
+            case "effect_capabilities" -> resultAsync(new Results.CapabilitiesResult(
                     catalog.tools().stream().map(McpSchema.Tool::name).toList()));
-            case "effect_list" -> result(new Results.ListResult(protocol.effectNames()));
+            case "effect_list" -> resultAsync(new Results.ListResult(protocol.effectNames()));
             case "effect_compile" -> compile(arguments);
             case "effect_preview" -> preview(arguments);
             case "effect_compare" -> compare(arguments);
@@ -96,50 +115,58 @@ public final class EffectsToolHandler implements AutoCloseable {
         };
     }
 
-    private McpSchema.CallToolResult compile(Map<String, Object> arguments)
-            throws JsonProcessingException {
+    private Mono<McpSchema.CallToolResult> compile(Map<String, Object> arguments) {
         String name = string(arguments, "effectName");
         if (protocol.effect(name) == null) {
-            return error("UNKNOWN_EFFECT", "effect is not declared: " + name);
+            return Mono.just(error("UNKNOWN_EFFECT", "effect is not declared: " + name));
         }
         EffectsBackend backend = protocol.backend();
         if (backend == null) {
-            return error("NOT_AVAILABLE",
-                    "effect_compile needs the render fixture, not wired in v0.1");
+            return Mono.just(error("NOT_AVAILABLE",
+                    "effect_compile needs the render fixture, not wired in v0.1"));
         }
-        return result(backend.compile(name));
+        return Mono.fromCompletionStage(backend.compile(name))
+                .publishOn(scheduler)
+                .flatMap(this::resultAsync);
     }
 
-    private McpSchema.CallToolResult preview(Map<String, Object> arguments)
-            throws JsonProcessingException {
+    private Mono<McpSchema.CallToolResult> preview(Map<String, Object> arguments) {
         String name = string(arguments, "effectName");
         if (protocol.effect(name) == null) {
-            return error("UNKNOWN_EFFECT", "effect is not declared: " + name);
+            return Mono.just(error("UNKNOWN_EFFECT", "effect is not declared: " + name));
         }
         EffectsBackend backend = protocol.backend();
         if (backend == null) {
-            return error("NOT_AVAILABLE",
-                    "effect_preview needs the render fixture, not wired in v0.1");
+            return Mono.just(error("NOT_AVAILABLE",
+                    "effect_preview needs the render fixture, not wired in v0.1"));
         }
-        return result(backend.preview(name));
+        return Mono.fromCompletionStage(backend.preview(name))
+                .publishOn(scheduler)
+                .flatMap(this::resultAsync);
     }
 
-    private McpSchema.CallToolResult compare(Map<String, Object> arguments)
-            throws JsonProcessingException {
+    private Mono<McpSchema.CallToolResult> compare(Map<String, Object> arguments) {
         String reference = string(arguments, "referenceName");
         String actual = string(arguments, "actualName");
         if (protocol.effect(reference) == null) {
-            return error("UNKNOWN_EFFECT", "effect is not declared: " + reference);
+            return Mono.just(error("UNKNOWN_EFFECT", "effect is not declared: " + reference));
         }
         if (protocol.effect(actual) == null) {
-            return error("UNKNOWN_EFFECT", "effect is not declared: " + actual);
+            return Mono.just(error("UNKNOWN_EFFECT", "effect is not declared: " + actual));
         }
         EffectsBackend backend = protocol.backend();
         if (backend == null) {
-            return error("NOT_AVAILABLE",
-                    "effect_compare needs the render fixture, not wired in v0.1");
+            return Mono.just(error("NOT_AVAILABLE",
+                    "effect_compare needs the render fixture, not wired in v0.1"));
         }
-        return result(backend.compare(reference, actual, DEFAULT_COMPARE_SPEC));
+        return Mono.fromCompletionStage(
+                backend.compare(reference, actual, DEFAULT_COMPARE_SPEC))
+                .publishOn(scheduler)
+                .flatMap(this::resultAsync);
+    }
+
+    private Mono<McpSchema.CallToolResult> resultAsync(Object value) {
+        return Mono.fromCallable(() -> result(value));
     }
 
     private static McpSchema.CallToolResult result(Object value) throws JsonProcessingException {
@@ -159,6 +186,25 @@ public final class EffectsToolHandler implements AutoCloseable {
                 .addTextContent(code + ": " + message)
                 .isError(true)
                 .build();
+    }
+
+    private static McpSchema.CallToolResult failure(Throwable failure) {
+        Throwable cause = unwrap(failure);
+        if (cause instanceof EffectsException effectsFailure) {
+            return error(effectsFailure.kind().name(), effectsFailure.getMessage());
+        }
+        if (cause instanceof JsonProcessingException) {
+            return error("INTERNAL_ERROR", "result could not be encoded");
+        }
+        return error("INTERNAL_ERROR", "backend operation failed");
+    }
+
+    private static Throwable unwrap(Throwable failure) {
+        Throwable cause = failure;
+        while (cause instanceof CompletionException && cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        return cause;
     }
 
     private static String string(Map<String, Object> values, String key) {

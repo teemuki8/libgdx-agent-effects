@@ -16,16 +16,20 @@ import io.github.teemuki8.libgdx.agent.effects.protocol.Results;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
+import java.util.concurrent.CompletionStage;
 
 /**
  * Real-GL {@link EffectsBackend} over the libgdx layer, wired into an
- * {@link EffectsProtocolService}. Render-thread confined: compile/render run on the owning GL
- * thread and fail fast with {@code WRONG_THREAD} otherwise.
+ * {@link EffectsProtocolService}. Compile/render operations invoked on the owner thread complete
+ * inline; off-owner calls are posted through the application-owned render queue. Queued work is
+ * bounded and canceled work is skipped before it touches GL. Close this backend on its owner thread.
  */
 public final class EffectsFixtureBackend implements EffectsBackend, AutoCloseable {
+    private static final int MAX_PENDING_RENDER_OPERATIONS = 64;
 
     private final EffectsProtocolService protocol;
     private final EffectsLimits limits;
+    private final BoundedRenderDispatcher dispatcher;
     private final EffectCompiler compiler;
     private final PreviewRenderer renderer;
     private final PixelComparer comparer = new PixelComparer();
@@ -34,11 +38,17 @@ public final class EffectsFixtureBackend implements EffectsBackend, AutoCloseabl
     public EffectsFixtureBackend(EffectsProtocolService protocol, EffectsLimits limits) {
         this.protocol = Objects.requireNonNull(protocol, "protocol");
         this.limits = Objects.requireNonNull(limits, "limits");
+        this.dispatcher = new BoundedRenderDispatcher(Thread.currentThread(),
+            com.badlogic.gdx.Gdx.app::postRunnable, MAX_PENDING_RENDER_OPERATIONS);
         this.compiler = new EffectCompiler(limits);
         this.renderer = new PreviewRenderer(limits);
     }
 
-    @Override public Results.CompileResult compile(String effectName) {
+    @Override public CompletionStage<Results.CompileResult> compile(String effectName) {
+        return dispatcher.submit(() -> compileOnRenderThread(effectName));
+    }
+
+    private Results.CompileResult compileOnRenderThread(String effectName) {
         CompiledEffect compiled = compiler.compile(effectOf(effectName));
         try {
             return new Results.CompileResult(effectName, compiled.diagnostic());
@@ -47,14 +57,24 @@ public final class EffectsFixtureBackend implements EffectsBackend, AutoCloseabl
         }
     }
 
-    @Override public Results.PreviewResult preview(String effectName) {
+    @Override public CompletionStage<Results.PreviewResult> preview(String effectName) {
+        return dispatcher.submit(() -> previewOnRenderThread(effectName));
+    }
+
+    private Results.PreviewResult previewOnRenderThread(String effectName) {
         RgbaImage image = renderer.render(effectOf(effectName));
         byte[] png = pngWriter.write(image);
         return new Results.PreviewResult(effectName, sha256Hex(png),
             image.width(), image.height());
     }
 
-    @Override public Results.CompareResult compare(String referenceName, String actualName,
+    @Override public CompletionStage<Results.CompareResult> compare(
+            String referenceName, String actualName,
+            PixelComparisonSpec spec) {
+        return dispatcher.submit(() -> compareOnRenderThread(referenceName, actualName, spec));
+    }
+
+    private Results.CompareResult compareOnRenderThread(String referenceName, String actualName,
             PixelComparisonSpec spec) {
         RgbaImage reference = renderer.render(effectOf(referenceName));
         RgbaImage actual = renderer.render(effectOf(actualName));
@@ -63,7 +83,9 @@ public final class EffectsFixtureBackend implements EffectsBackend, AutoCloseabl
     }
 
     @Override public void close() {
-        renderer.close();
+        if (dispatcher.close()) {
+            renderer.close();
+        }
     }
 
     private EffectDescription effectOf(String name) {
