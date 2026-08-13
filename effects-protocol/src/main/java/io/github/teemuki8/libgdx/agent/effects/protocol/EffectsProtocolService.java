@@ -4,11 +4,13 @@ import io.github.teemuki8.libgdx.agent.effects.core.EffectDescription;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /** Process-local registry of declared effects, keyed by stable non-secret name. */
 public final class EffectsProtocolService {
 
     private final Map<String, EffectDescription> effects = new LinkedHashMap<>();
+    private EffectsBackend backend;
 
     public synchronized EffectsProtocolService declare(EffectDescription effect) {
         effects.put(effect.name(), effect);
@@ -21,5 +23,16 @@ public final class EffectsProtocolService {
 
     public synchronized EffectDescription effect(String name) {
         return effects.get(name);
+    }
+
+    /** Wires the render backend used by the compile/preview/compare tools. */
+    public synchronized EffectsProtocolService backend(EffectsBackend backend) {
+        this.backend = Objects.requireNonNull(backend, "backend");
+        return this;
+    }
+
+    /** The wired backend, or {@code null} when the tools must answer {@code NOT_AVAILABLE}. */
+    public synchronized EffectsBackend backend() {
+        return backend;
     }
 }

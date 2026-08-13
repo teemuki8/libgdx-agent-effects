@@ -3,12 +3,15 @@ package io.github.teemuki8.libgdx.agent.effects.mcp;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.teemuki8.libgdx.agent.effects.core.PixelComparisonSpec;
+import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsBackend;
 import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsJson;
 import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsProtocolService;
 import io.github.teemuki8.libgdx.agent.effects.protocol.Results;
 import io.modelcontextprotocol.json.McpJsonDefaults;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
@@ -22,15 +25,20 @@ import reactor.core.scheduler.Schedulers;
  *
  * <p>{@code effect_capabilities} and {@code effect_list} answer from the closed catalog and
  * the declared-effect registry. {@code effect_compile}, {@code effect_preview}, and
- * {@code effect_compare} resolve their named effect(s) through the registry and answer a
- * typed {@code NOT_AVAILABLE} error for declared effects: this closed server has no render
- * backend (effects-mcp does not depend on libGDX), so the operations cannot run until the
- * render fixture wires the full loop.
+ * {@code effect_compare} resolve their named effect(s) through the registry and delegate to
+ * the wired {@link EffectsBackend} when one is present; otherwise they answer a typed
+ * {@code NOT_AVAILABLE} error (effects-mcp does not depend on libGDX — the backend is an
+ * interface in effects-protocol implemented by the render fixture).
  */
 public final class EffectsToolHandler implements AutoCloseable {
     private static final ObjectMapper MAPPER = EffectsJson.mapper();
     private static final TypeReference<LinkedHashMap<String, Object>> MAP_TYPE =
             new TypeReference<>() {};
+
+    /** The closed {@code effect_compare} schema has no spec arguments; compare whole images at
+     * zero tolerance. */
+    private static final PixelComparisonSpec DEFAULT_COMPARE_SPEC =
+            new PixelComparisonSpec(0, List.of(), List.of());
 
     private final EffectsProtocolService protocol;
     private final EffectsToolCatalog catalog;
@@ -88,25 +96,36 @@ public final class EffectsToolHandler implements AutoCloseable {
         };
     }
 
-    private McpSchema.CallToolResult compile(Map<String, Object> arguments) {
+    private McpSchema.CallToolResult compile(Map<String, Object> arguments)
+            throws JsonProcessingException {
         String name = string(arguments, "effectName");
         if (protocol.effect(name) == null) {
             return error("UNKNOWN_EFFECT", "effect is not declared: " + name);
         }
-        return error("NOT_AVAILABLE",
-                "effect_compile needs the render fixture, not wired in v0.1");
+        EffectsBackend backend = protocol.backend();
+        if (backend == null) {
+            return error("NOT_AVAILABLE",
+                    "effect_compile needs the render fixture, not wired in v0.1");
+        }
+        return result(backend.compile(name));
     }
 
-    private McpSchema.CallToolResult preview(Map<String, Object> arguments) {
+    private McpSchema.CallToolResult preview(Map<String, Object> arguments)
+            throws JsonProcessingException {
         String name = string(arguments, "effectName");
         if (protocol.effect(name) == null) {
             return error("UNKNOWN_EFFECT", "effect is not declared: " + name);
         }
-        return error("NOT_AVAILABLE",
-                "effect_preview needs the render fixture, not wired in v0.1");
+        EffectsBackend backend = protocol.backend();
+        if (backend == null) {
+            return error("NOT_AVAILABLE",
+                    "effect_preview needs the render fixture, not wired in v0.1");
+        }
+        return result(backend.preview(name));
     }
 
-    private McpSchema.CallToolResult compare(Map<String, Object> arguments) {
+    private McpSchema.CallToolResult compare(Map<String, Object> arguments)
+            throws JsonProcessingException {
         String reference = string(arguments, "referenceName");
         String actual = string(arguments, "actualName");
         if (protocol.effect(reference) == null) {
@@ -115,8 +134,12 @@ public final class EffectsToolHandler implements AutoCloseable {
         if (protocol.effect(actual) == null) {
             return error("UNKNOWN_EFFECT", "effect is not declared: " + actual);
         }
-        return error("NOT_AVAILABLE",
-                "effect_compare needs the render fixture, not wired in v0.1");
+        EffectsBackend backend = protocol.backend();
+        if (backend == null) {
+            return error("NOT_AVAILABLE",
+                    "effect_compare needs the render fixture, not wired in v0.1");
+        }
+        return result(backend.compare(reference, actual, DEFAULT_COMPARE_SPEC));
     }
 
     private static McpSchema.CallToolResult result(Object value) throws JsonProcessingException {
