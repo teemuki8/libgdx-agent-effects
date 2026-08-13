@@ -20,3 +20,8 @@ All notable changes follow Keep a Changelog structure.
 - `effects-fixtures`: deterministic LWJGL3 qualification fixture under Xvfb.
 
 ## [Unreleased]
+
+### Added
+
+- An unpublished interactive LWJGL3 before/after showcase with six deterministic practical and
+  artistic shader presets rendered through the public library API.

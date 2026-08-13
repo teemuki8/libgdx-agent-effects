@@ -65,6 +65,18 @@ require `xvfb-run` (`xorg-x11-server-Xvfb` on Fedora/Nobara, `xvfb` on Debian/Ub
 
 Use `.agents/skills/libgdx-agent-effects-dev/scripts/verify.sh full` for the official local gate.
 
+## Interactive showcase
+
+Run the unpublished desktop before/after workbench to explore six real shader effects:
+
+```bash
+./gradlew :effects-showcase:run
+```
+
+The showcase generates its own deterministic source scene, sends it through the public
+`EffectDescription`/`Sampler2d`/`PreviewRenderer` path, and displays source and processed images
+side by side. See the [showcase guide](docs/guides/showcase.md) for controls and boundaries.
+
 Release maintainers should follow the guarded [release procedure](docs/guides/releasing.md) and
 [Sonatype Central compliance contract](docs/sonatype-central-compliance.md). Maven Central
 publication always requires explicit authorization.

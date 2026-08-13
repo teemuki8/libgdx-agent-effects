@@ -135,6 +135,7 @@ public final class EffectsShowcaseApplication extends ApplicationAdapter {
         int width = Gdx.graphics.getWidth();
         int height = Gdx.graphics.getHeight();
         PaneLayout panes = paneLayout(width, height);
+        ShowcaseControlLayout controls = ShowcaseControlLayout.at(panes.leftX);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(0.075f, 0.094f, 0.14f, 1f);
         shapes.rect(0f, 0f, SIDEBAR_WIDTH, height);
@@ -150,9 +151,9 @@ public final class EffectsShowcaseApplication extends ApplicationAdapter {
         shapes.setColor(0.025f, 0.033f, 0.055f, 1f);
         shapes.rect(panes.leftX, panes.paneY, panes.paneWidth, panes.paneHeight);
         shapes.rect(panes.rightX, panes.paneY, panes.paneWidth, panes.paneHeight);
-        drawSlider(panes.leftX + 60f, panes.controlsY, state.timeSeconds()
+        drawSlider(controls.timeSliderX(), panes.controlsY, state.timeSeconds()
             / ShowcaseState.TIME_WRAP_SECONDS);
-        drawSlider(panes.leftX + 355f, panes.controlsY, state.intensity());
+        drawSlider(controls.intensitySliderX(), panes.controlsY, state.intensity());
         shapes.end();
     }
 
@@ -178,6 +179,7 @@ public final class EffectsShowcaseApplication extends ApplicationAdapter {
         int width = Gdx.graphics.getWidth();
         int height = Gdx.graphics.getHeight();
         PaneLayout panes = paneLayout(width, height);
+        ShowcaseControlLayout controls = ShowcaseControlLayout.at(panes.leftX);
         batch.begin();
         drawTexture(sourceTexture, panes.leftX, panes.paneY, panes.paneWidth, panes.paneHeight);
         if (processedTexture != null) {
@@ -197,12 +199,12 @@ public final class EffectsShowcaseApplication extends ApplicationAdapter {
         font.draw(batch, "SOURCE  -  320 x 240", panes.leftX, panes.paneY + panes.paneHeight + 23f);
         font.draw(batch, state.selectedPreset().name().toUpperCase(Locale.ROOT) + "  -  GLSL",
             panes.rightX, panes.paneY + panes.paneHeight + 23f);
-        font.draw(batch, "TIME", panes.leftX, panes.controlsY + 8f);
+        font.draw(batch, "TIME", controls.timeLabelX(), panes.controlsY + 8f);
         font.draw(batch, String.format(Locale.ROOT, "%.2fs", state.timeSeconds()),
-            panes.leftX + 258f, panes.controlsY + 8f);
-        font.draw(batch, "INTENSITY", panes.leftX + 285f, panes.controlsY + 8f);
+            controls.timeValueX(), panes.controlsY + 8f);
+        font.draw(batch, "INTENSITY", controls.intensityLabelX(), panes.controlsY + 8f);
         font.draw(batch, String.format(Locale.ROOT, "%.2f", state.intensity()),
-            panes.leftX + 555f, panes.controlsY + 8f);
+            controls.intensityValueX(), panes.controlsY + 8f);
         font.draw(batch, state.paused() ? "[Space] Resume" : "[Space] Pause",
             panes.leftX, panes.controlsY - 38f);
         font.draw(batch, "[R] Reset     [S] Save PNG", panes.leftX + 155f,
@@ -328,18 +330,21 @@ public final class EffectsShowcaseApplication extends ApplicationAdapter {
 
         private boolean adjustSlider(int screenX, int screenY) {
             PaneLayout panes = paneLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+            ShowcaseControlLayout controls = ShowcaseControlLayout.at(panes.leftX);
             float renderY = Gdx.graphics.getHeight() - screenY;
             if (Math.abs(renderY - panes.controlsY) > 18f) {
                 return false;
             }
-            if (screenX >= panes.leftX + 60f && screenX <= panes.leftX + 60f + SLIDER_WIDTH) {
-                float fraction = (screenX - panes.leftX - 60f) / SLIDER_WIDTH;
+            if (screenX >= controls.timeSliderX()
+                    && screenX <= controls.timeSliderX() + SLIDER_WIDTH) {
+                float fraction = (screenX - controls.timeSliderX()) / SLIDER_WIDTH;
                 state.setTimeSeconds(fraction * ShowcaseState.TIME_WRAP_SECONDS);
                 dirty = true;
                 return true;
             }
-            if (screenX >= panes.leftX + 355f && screenX <= panes.leftX + 355f + SLIDER_WIDTH) {
-                float fraction = (screenX - panes.leftX - 355f) / SLIDER_WIDTH;
+            if (screenX >= controls.intensitySliderX()
+                    && screenX <= controls.intensitySliderX() + SLIDER_WIDTH) {
+                float fraction = (screenX - controls.intensitySliderX()) / SLIDER_WIDTH;
                 state.setIntensity(fraction);
                 dirty = true;
                 return true;
