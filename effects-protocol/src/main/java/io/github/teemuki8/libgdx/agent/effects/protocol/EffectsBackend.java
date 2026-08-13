@@ -1,6 +1,7 @@
 package io.github.teemuki8.libgdx.agent.effects.protocol;
 
 import io.github.teemuki8.libgdx.agent.effects.core.PixelComparisonSpec;
+import java.util.concurrent.CompletionStage;
 
 /**
  * Render backend seam for the compile/preview/compare tools.
@@ -13,12 +14,12 @@ import io.github.teemuki8.libgdx.agent.effects.core.PixelComparisonSpec;
 public interface EffectsBackend {
 
     /** Compiles the named declared effect into structured diagnostics. */
-    Results.CompileResult compile(String effectName);
+    CompletionStage<Results.CompileResult> compile(String effectName);
 
     /** Renders the named declared effect and returns a bounded artifact receipt. */
-    Results.PreviewResult preview(String effectName);
+    CompletionStage<Results.PreviewResult> preview(String effectName);
 
     /** Renders two declared effects and compares their pixels under the given spec. */
-    Results.CompareResult compare(String referenceName, String actualName,
+    CompletionStage<Results.CompareResult> compare(String referenceName, String actualName,
             PixelComparisonSpec spec);
 }

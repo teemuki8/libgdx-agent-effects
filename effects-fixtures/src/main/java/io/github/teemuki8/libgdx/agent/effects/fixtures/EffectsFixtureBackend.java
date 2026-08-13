@@ -1,5 +1,6 @@
 package io.github.teemuki8.libgdx.agent.effects.fixtures;
 
+import com.badlogic.gdx.Gdx;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectDescription;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsLimits;
 import io.github.teemuki8.libgdx.agent.effects.core.PixelComparer;
@@ -16,6 +17,9 @@ import io.github.teemuki8.libgdx.agent.effects.protocol.Results;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 /**
  * Real-GL {@link EffectsBackend} over the libgdx layer, wired into an
@@ -26,6 +30,7 @@ public final class EffectsFixtureBackend implements EffectsBackend, AutoCloseabl
 
     private final EffectsProtocolService protocol;
     private final EffectsLimits limits;
+    private final Thread ownerThread = Thread.currentThread();
     private final EffectCompiler compiler;
     private final PreviewRenderer renderer;
     private final PixelComparer comparer = new PixelComparer();
@@ -38,7 +43,11 @@ public final class EffectsFixtureBackend implements EffectsBackend, AutoCloseabl
         this.renderer = new PreviewRenderer(limits);
     }
 
-    @Override public Results.CompileResult compile(String effectName) {
+    @Override public CompletionStage<Results.CompileResult> compile(String effectName) {
+        return onRenderThread(() -> compileOnRenderThread(effectName));
+    }
+
+    private Results.CompileResult compileOnRenderThread(String effectName) {
         CompiledEffect compiled = compiler.compile(effectOf(effectName));
         try {
             return new Results.CompileResult(effectName, compiled.diagnostic());
@@ -47,14 +56,24 @@ public final class EffectsFixtureBackend implements EffectsBackend, AutoCloseabl
         }
     }
 
-    @Override public Results.PreviewResult preview(String effectName) {
+    @Override public CompletionStage<Results.PreviewResult> preview(String effectName) {
+        return onRenderThread(() -> previewOnRenderThread(effectName));
+    }
+
+    private Results.PreviewResult previewOnRenderThread(String effectName) {
         RgbaImage image = renderer.render(effectOf(effectName));
         byte[] png = pngWriter.write(image);
         return new Results.PreviewResult(effectName, sha256Hex(png),
             image.width(), image.height());
     }
 
-    @Override public Results.CompareResult compare(String referenceName, String actualName,
+    @Override public CompletionStage<Results.CompareResult> compare(
+            String referenceName, String actualName,
+            PixelComparisonSpec spec) {
+        return onRenderThread(() -> compareOnRenderThread(referenceName, actualName, spec));
+    }
+
+    private Results.CompareResult compareOnRenderThread(String referenceName, String actualName,
             PixelComparisonSpec spec) {
         RgbaImage reference = renderer.render(effectOf(referenceName));
         RgbaImage actual = renderer.render(effectOf(actualName));
@@ -72,6 +91,29 @@ public final class EffectsFixtureBackend implements EffectsBackend, AutoCloseabl
             throw new IllegalArgumentException("effect is not declared: " + name);
         }
         return effect;
+    }
+
+    private <T> CompletionStage<T> onRenderThread(Supplier<T> operation) {
+        if (Thread.currentThread() == ownerThread) {
+            try {
+                return CompletableFuture.completedFuture(operation.get());
+            } catch (RuntimeException failure) {
+                return CompletableFuture.failedFuture(failure);
+            }
+        }
+        CompletableFuture<T> result = new CompletableFuture<>();
+        try {
+            Gdx.app.postRunnable(() -> {
+                try {
+                    result.complete(operation.get());
+                } catch (RuntimeException failure) {
+                    result.completeExceptionally(failure);
+                }
+            });
+        } catch (RuntimeException failure) {
+            result.completeExceptionally(failure);
+        }
+        return result;
     }
 
     private static String sha256Hex(byte[] data) {
