@@ -24,22 +24,23 @@ It is the rendering layer of the teemuki8 stack, alongside
 [`libgdx-ui-harness`](https://github.com/teemuki8/libgdx-ui-harness) (semantic UI automation),
 [`libgdx-agent-gameplay`](https://github.com/teemuki8/libgdx-agent-gameplay) (fixed-tick gameplay),
 and [`libgdx-agent-runtime`](https://github.com/teemuki8/libgdx-agent-runtime) (typed game state).
-None of them is a dependency of this library; this library depends on `harness-lwjgl3` only for
-completed-frame synchronization and framebuffer capture, and reuses the runtime correlation pattern
-rather than the runtime artifact.
+None of them is a dependency of this library. It is built directly on libGDX primitives
+(`ShaderProgram`, `FrameBuffer`, `ScreenUtils`) with its own bounded JSON protocol and closed
+stdio MCP surface.
 
-## Planned scope
+## Shipped v0.1
 
-Planned v0.1:
-
-- Declarative effect and render-pass-graph schema with bounded uniforms and parameters.
-- Structured shader compile diagnostics mapped to source lines, with active uniforms/attributes.
-- Deterministic headless preview rendering to a `FrameBuffer`, mirroring the stack's
-  `--smoke N --screenshot` convention.
+- Declarative effect model (shader source, closed uniform union, bounded effect description) in
+  JDK-only `effects-core`.
+- Structured shader compile diagnostics (severity-tagged, line-mapped messages; active uniforms
+  and attributes) parsed from a raw GLSL log.
+- Deterministic headless preview rendering a fullscreen quad to a bounded `FrameBuffer`, captured
+  to a packed-RGBA image with PNG emission.
 - Tolerance- and region-mask-aware pixel comparison over captured framebuffer output.
-- A closed stdio MCP surface for agents, plus a real LWJGL3 fixture under Xvfb.
+- A closed five-tool stdio MCP surface and a real LWJGL3 qualification fixture under Xvfb.
 
-See `docs/` for the design contract, ADRs, guides, and release notes as they land.
+Deferred: multi-pass render graph, particles, stock effects, hot reload, and runtime-authority
+correlation (`effects-agent-runtime`). See `docs/roadmap.md`.
 
 ## Modules
 
