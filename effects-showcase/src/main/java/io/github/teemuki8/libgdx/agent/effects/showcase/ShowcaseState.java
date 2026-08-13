@@ -58,6 +58,13 @@ public final class ShowcaseState {
         intensity = Math.max(0f, Math.min(1f, value));
     }
 
+    public void setTimeSeconds(float value) {
+        if (!Float.isFinite(value) || value < 0f) {
+            throw new IllegalArgumentException("time must be finite and non-negative");
+        }
+        timeSeconds = value % TIME_WRAP_SECONDS;
+    }
+
     public void advance(float deltaSeconds) {
         if (!Float.isFinite(deltaSeconds) || deltaSeconds < 0f) {
             throw new IllegalArgumentException("deltaSeconds must be finite and non-negative");

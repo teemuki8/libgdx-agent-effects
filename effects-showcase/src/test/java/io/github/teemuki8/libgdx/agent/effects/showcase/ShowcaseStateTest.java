@@ -18,11 +18,13 @@ class ShowcaseStateTest {
         assertEquals(1f, state.intensity());
         state.advance(ShowcaseState.TIME_WRAP_SECONDS + 0.5f);
         assertEquals(0.5f, state.timeSeconds(), 0.0001f);
+        state.setTimeSeconds(ShowcaseState.TIME_WRAP_SECONDS * 2f + 2.25f);
+        assertEquals(2.25f, state.timeSeconds(), 0.0001f);
 
         state.togglePaused();
         assertTrue(state.paused());
         state.advance(1f);
-        assertEquals(0.5f, state.timeSeconds(), 0.0001f);
+        assertEquals(2.25f, state.timeSeconds(), 0.0001f);
 
         state.select(1);
         assertFalse(state.paused());
