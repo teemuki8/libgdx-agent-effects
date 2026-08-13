@@ -1,9 +1,11 @@
 package io.github.teemuki8.libgdx.agent.effects.protocol;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 
 /** Closed, bounded Jackson mapper for all protocol JSON. */
 public final class EffectsJson {
@@ -15,16 +17,18 @@ public final class EffectsJson {
     }
 
     private static ObjectMapper build() {
-        ObjectMapper m = new ObjectMapper();
-        m.enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-        m.disable(MapperFeature.ALLOW_COERCION_OF_SCALARS);
-        m.getFactory().setStreamReadConstraints(
-            StreamReadConstraints.builder()
+        JsonFactory factory = JsonFactory.builder()
+            .streamReadConstraints(
+                StreamReadConstraints.builder()
                 .maxNestingDepth(32)
                 .maxStringLength(16_384)
                 .maxNumberLength(128)
-                .build());
-        return m;
+                .build())
+            .build();
+        return JsonMapper.builder(factory)
+            .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
+            .build();
     }
 
     private EffectsJson() {}

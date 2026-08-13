@@ -65,6 +65,10 @@ require `xvfb-run` (`xorg-x11-server-Xvfb` on Fedora/Nobara, `xvfb` on Debian/Ub
 
 Use `.agents/skills/libgdx-agent-effects-dev/scripts/verify.sh full` for the official local gate.
 
+Release maintainers should follow the guarded [release procedure](docs/guides/releasing.md) and
+[Sonatype Central compliance contract](docs/sonatype-central-compliance.md). Maven Central
+publication always requires explicit authorization.
+
 ## License
 
 Copyright 2026 Teemu Jääskeläinen.
