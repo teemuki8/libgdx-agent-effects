@@ -83,7 +83,9 @@ public final class EffectsFixtureBackend implements EffectsBackend, AutoCloseabl
     }
 
     @Override public void close() {
-        renderer.close();
+        if (dispatcher.close()) {
+            renderer.close();
+        }
     }
 
     private EffectDescription effectOf(String name) {

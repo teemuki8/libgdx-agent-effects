@@ -2,9 +2,11 @@ package io.github.teemuki8.libgdx.agent.effects.fixtures;
 
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -13,7 +15,8 @@ final class BoundedRenderDispatcher {
     private final Thread ownerThread;
     private final Consumer<Runnable> postRunnable;
     private final int maxPending;
-    private final AtomicInteger pending = new AtomicInteger();
+    private final Set<DispatchFuture<?>> pending = ConcurrentHashMap.newKeySet();
+    private volatile boolean closed;
 
     BoundedRenderDispatcher(Thread ownerThread, Consumer<Runnable> postRunnable, int maxPending) {
         this.ownerThread = Objects.requireNonNull(ownerThread, "ownerThread");
@@ -26,33 +29,59 @@ final class BoundedRenderDispatcher {
 
     <T> CompletionStage<T> submit(Supplier<T> operation) {
         Objects.requireNonNull(operation, "operation");
+        if (closed) {
+            return CompletableFuture.failedFuture(
+                new IllegalStateException("render dispatcher is closed"));
+        }
         if (Thread.currentThread() == ownerThread) {
             return completed(operation);
         }
-        if (pending.incrementAndGet() > maxPending) {
-            pending.decrementAndGet();
-            return CompletableFuture.failedFuture(new EffectsException(
-                EffectsException.Kind.LIMIT_EXCEEDED, "render operation queue is full"));
+        DispatchFuture<T> result = new DispatchFuture<>();
+        synchronized (pending) {
+            if (closed) {
+                return CompletableFuture.failedFuture(
+                    new IllegalStateException("render dispatcher is closed"));
+            }
+            if (pending.size() >= maxPending) {
+                return CompletableFuture.failedFuture(new EffectsException(
+                    EffectsException.Kind.LIMIT_EXCEEDED, "render operation queue is full"));
+            }
+            pending.add(result);
         }
-        CompletableFuture<T> result = new CompletableFuture<>();
         try {
             postRunnable.accept(() -> runQueued(operation, result));
         } catch (RuntimeException failure) {
-            pending.decrementAndGet();
+            pending.remove(result);
             result.completeExceptionally(failure);
         }
         return result;
     }
 
-    private <T> void runQueued(Supplier<T> operation, CompletableFuture<T> result) {
+    boolean close() {
+        if (Thread.currentThread() != ownerThread) {
+            throw new EffectsException(EffectsException.Kind.WRONG_THREAD,
+                "render dispatcher must be closed on its owner thread");
+        }
+        synchronized (pending) {
+            if (closed) {
+                return false;
+            }
+            closed = true;
+            pending.forEach(future -> future.cancel(false));
+            return true;
+        }
+    }
+
+    private <T> void runQueued(Supplier<T> operation, DispatchFuture<T> result) {
         try {
-            if (!result.isCancelled()) {
+            if (result.begin()) {
                 result.complete(operation.get());
             }
         } catch (RuntimeException failure) {
             result.completeExceptionally(failure);
         } finally {
-            pending.decrementAndGet();
+            result.finish();
+            pending.remove(result);
         }
     }
 
@@ -61,6 +90,26 @@ final class BoundedRenderDispatcher {
             return CompletableFuture.completedFuture(operation.get());
         } catch (RuntimeException failure) {
             return CompletableFuture.failedFuture(failure);
+        }
+    }
+
+    private enum DispatchState { QUEUED, RUNNING, CANCELED, DONE }
+
+    private static final class DispatchFuture<T> extends CompletableFuture<T> {
+        private final AtomicReference<DispatchState> state =
+            new AtomicReference<>(DispatchState.QUEUED);
+
+        boolean begin() {
+            return state.compareAndSet(DispatchState.QUEUED, DispatchState.RUNNING);
+        }
+
+        void finish() {
+            state.compareAndSet(DispatchState.RUNNING, DispatchState.DONE);
+        }
+
+        @Override public boolean cancel(boolean mayInterruptIfRunning) {
+            return state.compareAndSet(DispatchState.QUEUED, DispatchState.CANCELED)
+                && super.cancel(false);
         }
     }
 }

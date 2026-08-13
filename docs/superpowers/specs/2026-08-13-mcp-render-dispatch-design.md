@@ -27,8 +27,10 @@ from MCP post one bounded operation through `Gdx.app.postRunnable`. `EffectsTool
 the returned stage into its `Mono`; it never blocks waiting for GL work.
 
 The fixture admits at most 64 queued off-owner render operations. Cancellation before a queued
-operation starts skips that GL work. The handler resumes encoded results and downstream delivery on
-its virtual-thread scheduler rather than the stage-completion thread.
+operation starts skips that GL work. Cancellation and start use one atomic state transition, so a
+successful cancellation always wins before GL work begins. Closing on the owner thread rejects new
+work and cancels queued operations before renderer disposal. The handler resumes encoded results
+and downstream delivery on its virtual-thread scheduler rather than the stage-completion thread.
 
 Input/schema failures remain `INVALID_QUERY`. `EffectsException` failures become typed MCP errors
 whose code is the stable exception kind. Unexpected backend failures become `INTERNAL_ERROR` with
