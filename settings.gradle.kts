@@ -22,4 +22,5 @@ include(
     "effects-libgdx",
     "effects-mcp",
     "effects-fixtures",
+    "effects-showcase",
 )
