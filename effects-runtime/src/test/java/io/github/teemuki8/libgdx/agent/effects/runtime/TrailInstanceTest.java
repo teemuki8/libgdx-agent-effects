@@ -113,7 +113,8 @@ class TrailInstanceTest {
     }
 
     private static RuntimeLimits limits(int maxTrailPoints) {
-        return new RuntimeLimits(4, 2, 4, 4, 8, maxTrailPoints, 8, 4, 1f / 60f);
+        return new RuntimeLimits(4, 2, 4, 4, 8, maxTrailPoints, 8, 4, 16,
+                1f / 60f);
     }
 
     private static void assertKind(EffectsException.Kind kind,

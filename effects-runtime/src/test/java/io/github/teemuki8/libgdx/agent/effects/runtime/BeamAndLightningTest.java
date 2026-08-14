@@ -112,7 +112,8 @@ class BeamAndLightningTest {
     }
 
     private static RuntimeLimits limits(int segments, int branches) {
-        return new RuntimeLimits(4, 4, 4, 4, 8, 16, segments, branches, 1f / 60f);
+        return new RuntimeLimits(4, 4, 4, 4, 8, 16, segments, branches, 16,
+                1f / 60f);
     }
 
     private static void assertKind(EffectsException.Kind kind,
