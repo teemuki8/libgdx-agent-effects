@@ -46,6 +46,10 @@ class ParticleBackendSelectorTest {
         assertEquals(ParticleBackendEvidence.Backend.CPU, ParticleBackendSelector.select(
                 ParticleTestDefinitions.supported(), gles3,
                 ParticleFallbackPolicy.FALLBACK_CPU, 4096).backend());
+        assertEquals(ParticleBackendEvidence.Backend.CPU, ParticleBackendSelector.select(
+                ParticleTestDefinitions.supported(),
+                new EffectCapabilities(4, 6, 4096, true),
+                ParticleFallbackPolicy.FALLBACK_CPU, 4096).backend());
     }
 
     private static EffectCapabilities capabilities(int major) {

@@ -11,10 +11,10 @@ public record EffectCapabilities(int glMajor, int glMinor,
         }
     }
 
-    /** Preserves the original constructor for callers reporting desktop OpenGL. */
+    /** Preserves the original constructor conservatively without assuming a graphics profile. */
     public EffectCapabilities(int glMajor, int glMinor,
             int maxTextureSize, boolean floatTextures) {
-        this(glMajor, glMinor, maxTextureSize, floatTextures, Profile.DESKTOP_OPENGL);
+        this(glMajor, glMinor, maxTextureSize, floatTextures, Profile.UNKNOWN);
     }
 
     /** Whether the declared context is at least OpenGL 3.0. */
@@ -30,6 +30,7 @@ public record EffectCapabilities(int glMajor, int glMinor,
 
     /** Closed graphics-profile vocabulary independent of libGDX runtime classes. */
     public enum Profile {
+        UNKNOWN,
         DESKTOP_OPENGL,
         OPENGL_ES,
         WEBGL

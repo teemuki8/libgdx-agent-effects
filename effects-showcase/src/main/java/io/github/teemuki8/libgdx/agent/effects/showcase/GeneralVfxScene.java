@@ -330,7 +330,7 @@ public final class GeneralVfxScene {
             case OpenGL -> EffectCapabilities.Profile.DESKTOP_OPENGL;
             case GLES -> EffectCapabilities.Profile.OPENGL_ES;
             case WebGL -> EffectCapabilities.Profile.WEBGL;
-            case NONE -> EffectCapabilities.Profile.DESKTOP_OPENGL;
+            case NONE -> EffectCapabilities.Profile.UNKNOWN;
         };
         java.nio.IntBuffer maximum = com.badlogic.gdx.utils.BufferUtils.newIntBuffer(1);
         Gdx.gl.glGetIntegerv(GL20.GL_MAX_TEXTURE_SIZE, maximum);
