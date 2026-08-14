@@ -24,6 +24,8 @@ class GpuParticleInstanceTest {
             int viewportWidth = viewport(2);
             int viewportHeight = viewport(3);
             Gdx.gl.glDisable(GL20.GL_BLEND);
+            Gdx.gl.glClearColor(0.17f, 0.23f, 0.31f, 0.47f);
+            float[] clearColor = clearColor();
             try (GpuParticleInstance particles = new GpuParticleInstance(
                     ParticleTestDefinitions.supported(), limits,
                     new EffectCapabilities(3, 0, 4096, true))) {
@@ -39,6 +41,8 @@ class GpuParticleInstanceTest {
                 assertEquals(viewportWidth, viewport(2));
                 assertEquals(viewportHeight, viewport(3));
                 assertEquals(false, Gdx.gl.glIsEnabled(GL20.GL_BLEND));
+                assertEquals(java.util.List.of(clearColor[0], clearColor[1], clearColor[2],
+                        clearColor[3]), floats(clearColor()));
                 assertEquals(GL20.GL_NO_ERROR, Gdx.gl.glGetError());
             }
         });
@@ -54,5 +58,15 @@ class GpuParticleInstanceTest {
         IntBuffer values = BufferUtils.newIntBuffer(4);
         Gdx.gl.glGetIntegerv(GL20.GL_VIEWPORT, values);
         return values.get(index);
+    }
+
+    private static float[] clearColor() {
+        java.nio.FloatBuffer values = BufferUtils.newFloatBuffer(4);
+        Gdx.gl.glGetFloatv(GL20.GL_COLOR_CLEAR_VALUE, values);
+        return new float[] {values.get(0), values.get(1), values.get(2), values.get(3)};
+    }
+
+    private static java.util.List<Float> floats(float[] values) {
+        return java.util.List.of(values[0], values[1], values[2], values[3]);
     }
 }

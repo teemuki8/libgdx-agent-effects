@@ -6,9 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Mesh;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.VertexAttribute;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Renderable;
+import com.badlogic.gdx.graphics.g3d.Shader;
+import com.badlogic.gdx.graphics.g3d.utils.DefaultTextureBinder;
+import com.badlogic.gdx.graphics.g3d.utils.RenderContext;
 import io.github.teemuki8.libgdx.agent.effects.core.BlendMode;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsLimits;
@@ -66,6 +70,58 @@ class Material3dShaderProviderTest {
                 mesh.dispose();
             }
         });
+    }
+
+    @Test
+    void shaderMethodsStayOnOwnerThreadAndRestoreChangedGlState() throws Exception {
+        GdxTestHost.run(() -> {
+            Mesh mesh = triangle();
+            try (Material3dShaderProvider provider = new Material3dShaderProvider(
+                    EffectsLimits.developmentDefaults(), key -> null)) {
+                Renderable renderable = renderable(mesh, material());
+                Shader shader = provider.getShader(renderable);
+                com.badlogic.gdx.Gdx.gl.glDisable(GL20.GL_BLEND);
+                com.badlogic.gdx.Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+                com.badlogic.gdx.Gdx.gl.glDepthMask(false);
+                com.badlogic.gdx.Gdx.gl.glEnable(GL20.GL_CULL_FACE);
+                com.badlogic.gdx.Gdx.gl.glCullFace(GL20.GL_FRONT);
+                OrthographicCamera camera = new OrthographicCamera(2f, 2f);
+                camera.update();
+                RenderContext context = new RenderContext(
+                        new DefaultTextureBinder(DefaultTextureBinder.ROUNDROBIN));
+
+                shader.begin(camera, context);
+                shader.render(renderable);
+                shader.end();
+
+                assertEquals(false, com.badlogic.gdx.Gdx.gl.glIsEnabled(GL20.GL_BLEND));
+                assertEquals(true, com.badlogic.gdx.Gdx.gl.glIsEnabled(GL20.GL_DEPTH_TEST));
+                assertEquals(false, integer(GL20.GL_DEPTH_WRITEMASK) != 0);
+                assertEquals(true, com.badlogic.gdx.Gdx.gl.glIsEnabled(GL20.GL_CULL_FACE));
+                assertEquals(GL20.GL_FRONT, integer(GL20.GL_CULL_FACE_MODE));
+
+                AtomicReference<Throwable> failure = new AtomicReference<>();
+                Thread other = new Thread(() -> {
+                    try {
+                        shader.begin(camera, context);
+                    } catch (Throwable thrown) {
+                        failure.set(thrown);
+                    }
+                });
+                other.start();
+                other.join();
+                assertEquals(EffectsException.Kind.WRONG_THREAD,
+                        ((EffectsException) failure.get()).kind());
+            } finally {
+                mesh.dispose();
+            }
+        });
+    }
+
+    private static int integer(int name) {
+        java.nio.IntBuffer value = com.badlogic.gdx.utils.BufferUtils.newIntBuffer(1);
+        com.badlogic.gdx.Gdx.gl.glGetIntegerv(name, value);
+        return value.get(0);
     }
 
     private static Material3dDefinition material() {

@@ -16,6 +16,7 @@ import io.github.teemuki8.libgdx.agent.effects.core.ParticleBackendEvidence;
 import io.github.teemuki8.libgdx.agent.effects.core.ParticleDefinition;
 import io.github.teemuki8.libgdx.agent.effects.core.ParticleModifier;
 import java.nio.IntBuffer;
+import java.nio.FloatBuffer;
 import java.util.Objects;
 
 /** Render-thread GL3 ping-pong particle state-texture simulation. */
@@ -224,10 +225,13 @@ public final class GpuParticleInstance implements AutoCloseable {
     private record GlState(int framebuffer, int program, int activeTexture,
             int activeTextureBinding, int textureZeroBinding,
             int viewportX, int viewportY, int viewportWidth,
-            int viewportHeight, boolean blend, boolean depth, boolean cull) {
+            int viewportHeight, boolean blend, boolean depth, boolean cull,
+            float clearRed, float clearGreen, float clearBlue, float clearAlpha) {
         static GlState capture() {
             IntBuffer viewport = BufferUtils.newIntBuffer(4);
             Gdx.gl.glGetIntegerv(GL20.GL_VIEWPORT, viewport);
+            FloatBuffer clear = BufferUtils.newFloatBuffer(4);
+            Gdx.gl.glGetFloatv(GL20.GL_COLOR_CLEAR_VALUE, clear);
             int active = integer(GL20.GL_ACTIVE_TEXTURE);
             int activeBinding = integer(GL20.GL_TEXTURE_BINDING_2D);
             Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
@@ -238,7 +242,8 @@ public final class GpuParticleInstance implements AutoCloseable {
                     viewport.get(0), viewport.get(1), viewport.get(2), viewport.get(3),
                     Gdx.gl.glIsEnabled(GL20.GL_BLEND),
                     Gdx.gl.glIsEnabled(GL20.GL_DEPTH_TEST),
-                    Gdx.gl.glIsEnabled(GL20.GL_CULL_FACE));
+                    Gdx.gl.glIsEnabled(GL20.GL_CULL_FACE),
+                    clear.get(0), clear.get(1), clear.get(2), clear.get(3));
         }
 
         void restore() {
@@ -247,6 +252,7 @@ public final class GpuParticleInstance implements AutoCloseable {
             enabled(GL20.GL_BLEND, blend);
             enabled(GL20.GL_DEPTH_TEST, depth);
             enabled(GL20.GL_CULL_FACE, cull);
+            Gdx.gl.glClearColor(clearRed, clearGreen, clearBlue, clearAlpha);
             Gdx.gl.glUseProgram(program);
             Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
             Gdx.gl.glBindTexture(GL20.GL_TEXTURE_2D, textureZeroBinding);

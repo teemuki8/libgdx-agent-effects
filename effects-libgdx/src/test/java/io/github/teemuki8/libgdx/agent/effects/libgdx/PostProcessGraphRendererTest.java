@@ -36,6 +36,8 @@ class PostProcessGraphRendererTest {
             Texture scene = texture(0xff0000ff);
             Texture overlay = texture(0x0000ffff);
             int sceneHandle = scene.getTextureObjectHandle();
+            Gdx.gl.glClearColor(0.17f, 0.23f, 0.31f, 0.47f);
+            float[] clearColor = clearColor();
             try (PostProcessGraphRenderer renderer = new PostProcessGraphRenderer(graph(),
                     EffectsLimits.developmentDefaults())) {
                 Map<String, SceneCapture> captures = Map.of(
@@ -59,6 +61,8 @@ class PostProcessGraphRendererTest {
                 assertEquals(sceneHandle, scene.getTextureObjectHandle());
                 assertThrows(EffectsException.class,
                         () -> renderer.render(Map.of("scene", capture(scene)), 8, 8));
+                assertEquals(List.of(clearColor[0], clearColor[1], clearColor[2], clearColor[3]),
+                        floats(clearColor()));
             } finally {
                 scene.dispose();
                 overlay.dispose();
@@ -146,5 +150,15 @@ class PostProcessGraphRendererTest {
         } finally {
             result.framebuffer().end();
         }
+    }
+
+    private static float[] clearColor() {
+        java.nio.FloatBuffer values = com.badlogic.gdx.utils.BufferUtils.newFloatBuffer(4);
+        Gdx.gl.glGetFloatv(GL20.GL_COLOR_CLEAR_VALUE, values);
+        return new float[] {values.get(0), values.get(1), values.get(2), values.get(3)};
+    }
+
+    private static List<Float> floats(float[] values) {
+        return List.of(values[0], values[1], values[2], values[3]);
     }
 }

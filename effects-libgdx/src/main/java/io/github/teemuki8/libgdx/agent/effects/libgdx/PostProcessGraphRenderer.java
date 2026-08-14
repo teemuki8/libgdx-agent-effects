@@ -15,6 +15,7 @@ import io.github.teemuki8.libgdx.agent.effects.core.PostProcessGraphDefinition;
 import io.github.teemuki8.libgdx.agent.effects.core.PostProcessRenderEvidence;
 import io.github.teemuki8.libgdx.agent.effects.core.RenderPassDefinition;
 import java.nio.IntBuffer;
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -170,17 +171,22 @@ public final class PostProcessGraphRenderer implements AutoCloseable {
         return value.get(0);
     }
 
-    private record GlTargetState(int framebuffer, int x, int y, int width, int height) {
+    private record GlTargetState(int framebuffer, int x, int y, int width, int height,
+            float clearRed, float clearGreen, float clearBlue, float clearAlpha) {
         static GlTargetState capture() {
             IntBuffer viewport = BufferUtils.newIntBuffer(4);
             Gdx.gl.glGetIntegerv(GL20.GL_VIEWPORT, viewport);
+            FloatBuffer clear = BufferUtils.newFloatBuffer(4);
+            Gdx.gl.glGetFloatv(GL20.GL_COLOR_CLEAR_VALUE, clear);
             return new GlTargetState(integer(GL20.GL_FRAMEBUFFER_BINDING),
-                    viewport.get(0), viewport.get(1), viewport.get(2), viewport.get(3));
+                    viewport.get(0), viewport.get(1), viewport.get(2), viewport.get(3),
+                    clear.get(0), clear.get(1), clear.get(2), clear.get(3));
         }
 
         void restore() {
             Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, framebuffer);
             Gdx.gl.glViewport(x, y, width, height);
+            Gdx.gl.glClearColor(clearRed, clearGreen, clearBlue, clearAlpha);
         }
     }
 }
