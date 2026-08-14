@@ -20,10 +20,16 @@ rejected with a strict decoder, and nesting, string, and number tokens are cappe
 validation. A rejected frame produces one bounded JSON-RPC parse error and does not terminate later
 valid requests.
 
-Shader and effect sources are a closed declarative schema. Effect descriptions, uniforms, pass
-graphs, and pixel comparisons do not accept expressions, method names, arbitrary code, or
-executable shader paths chosen by the caller. GLSL source is passed to the driver for compilation
-only after explicit length and pass-count bounds; the library does not execute arbitrary JVM code.
+Effect descriptions, uniforms, pass graphs, and pixel comparisons are closed declarative schemas.
+The Godot importer accepts shader expressions only as bounded source content: a single-pass lexer,
+typed parser, semantic analyzer, and generator enforce source, token, AST, statement, expression,
+mapping, diagnostic, and generated-text limits. Preprocessing, includes, filenames, and asset paths
+are rejected. Generated GLSL is passed to the driver only on the application render thread; shader
+source never becomes JVM code.
+
+Importing is separately wired from compiling and previewing. It neither registers nor persists an
+effect. Structured source mappings and diagnostics are bounded before crossing protocol/MCP trust
+boundaries, and compilation alone is not evidence of visual equivalence.
 
 Pixel comparison accepts only bounded scalar tolerances and explicit region masks over captured
 framebuffer output. It performs no DOM, scene-graph, accessibility, widget-object, reflection, or

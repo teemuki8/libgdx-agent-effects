@@ -8,17 +8,20 @@ The first publishable increment. Deliverables, in dependency order:
    bounded limits, and the structured shader-diagnostic model (errors mapped to source lines, active
    uniforms/attributes).
 2. `effects-protocol` — bounded JSON commands, results, and errors over the core schema.
-3. `effects-libgdx` — render-thread shader compilation into structured diagnostics, FrameBuffer
+3. `effects-import` — bounded JDK-only Godot `canvas_item` parsing and GLSL ES translation.
+4. `effects-libgdx` — render-thread shader compilation into structured diagnostics, FrameBuffer
    render-pass execution, and deterministic headless preview.
-4. `effects-mcp` — closed stdio MCP tool catalog for agents.
-5. `effects-fixtures` — real LWJGL3 qualification fixture under Xvfb.
+5. `effects-mcp` — closed stdio MCP tool catalog for agents, including non-persisting shader import.
+6. `effects-fixtures` — real LWJGL3 qualification fixture under Xvfb.
 
 Each increment lands with its ADR, a vertical slice through Java API, protocol, MCP, and the fixture,
 and pixel-comparison evidence where applicable.
 
-## Later
+## General-VFX program
 
-- `effects-agent-runtime` — correlate an "active pass/effect" with `agent-runtime` typed state,
-  mirroring the `harness-agent-runtime` adapter.
-- Hot reload of GLSL and effect sources for the development loop.
-- A stock-effect set (bloom, blur, vignette) on top of the pass-graph schema.
+The approved implementation sequence after the importer is an explicit JDK-only runtime lifecycle,
+sprite/mesh materials, trails and ribbons, beams and lightning, deterministic CPU particles, GL3
+GPU particles with a disclosed GL2 CPU fallback, 2D/3D decals, distortion and bounded multipass
+graphs, native libGDX particle compatibility, cross-family protocol/MCP operations, and a Wings
+ship-trail example with qualification evidence. The detailed bounded contracts and verification
+gates are in `docs/superpowers/plans/2026-08-14-general-vfx-program.md`.

@@ -37,16 +37,19 @@ stdio MCP surface.
 - Deterministic headless preview rendering a fullscreen quad to a bounded `FrameBuffer`, captured
   to a packed-RGBA image with PNG emission.
 - Tolerance- and region-mask-aware pixel comparison over captured framebuffer output.
-- A closed five-tool stdio MCP surface and a real LWJGL3 qualification fixture under Xvfb.
+- Bounded Godot 4 `canvas_item` parsing and semantic translation to GLSL ES 100/300, with explicit
+  mappings, approximation diagnostics, real-GL qualification, and no path/include resolution.
+- A closed six-tool stdio MCP surface and a real LWJGL3 qualification fixture under Xvfb.
 
-Deferred: multi-pass render graph, particles, stock effects, hot reload, and runtime-authority
-correlation (`effects-agent-runtime`). See `docs/roadmap.md`.
+The approved general-VFX program next carries materials into trails, particles, beams, lightning,
+decals, distortion, post-processing, and GPU-particle fallback paths. See `docs/roadmap.md`.
 
 ## Modules
 
 | Module | Purpose | Published artifact |
 | --- | --- | --- |
 | `effects-core` | JDK-only effect/pass-graph schema, diagnostics, bounds | `agent-effects-core` |
+| `effects-import` | JDK-only bounded engine shader importers | `agent-effects-import` |
 | `effects-protocol` | strict bounded JSON commands, results, and errors | `agent-effects-protocol` |
 | `effects-libgdx` | render-thread shader compile, passes, deterministic preview | `agent-effects-libgdx` |
 | `effects-mcp` | closed stdio MCP tool catalog | `agent-effects-mcp` |
@@ -76,6 +79,9 @@ Run the unpublished desktop before/after workbench to explore six real shader ef
 The showcase generates its own deterministic source scene, sends it through the public
 `EffectDescription`/`Sampler2d`/`PreviewRenderer` path, and displays source and processed images
 side by side. See the [showcase guide](docs/guides/showcase.md) for controls and boundaries.
+
+See the [Godot import guide](docs/guides/godot-import.md) for the supported `canvas_item` subset,
+Java/MCP usage, fidelity meanings, and qualification boundary.
 
 Release maintainers should follow the guarded [release procedure](docs/guides/releasing.md) and
 [Sonatype Central compliance contract](docs/sonatype-central-compliance.md). Maven Central
