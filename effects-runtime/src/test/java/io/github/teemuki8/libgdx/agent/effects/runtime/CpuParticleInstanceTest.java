@@ -82,6 +82,18 @@ class CpuParticleInstanceTest {
                         limits(3), 1L));
     }
 
+    @Test
+    void rejectsEmissionBeyondConfiguredPerAdvanceCapacityWithoutMutation() {
+        CpuParticleInstance particles = new CpuParticleInstance(
+                definition(3, ParticleCapacityPolicy.DROP_NEWEST, 100f), limits(3), 1L);
+        particles.setAnchor(new EffectAnchor("emitter", 0f, 0f, 0f));
+        particles.burst(1);
+        ParticleSnapshot before = particles.snapshot();
+
+        assertKind(EffectsException.Kind.LIMIT_EXCEEDED, () -> particles.advance(0.25f));
+        assertEquals(before, particles.snapshot());
+    }
+
     private static CpuParticleInstance instance(long seed, ParticleCapacityPolicy policy) {
         return new CpuParticleInstance(definition(3, policy), limits(3), seed);
     }

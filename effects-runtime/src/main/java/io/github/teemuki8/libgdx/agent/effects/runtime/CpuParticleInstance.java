@@ -96,13 +96,20 @@ public final class CpuParticleInstance implements AutoCloseable {
             throw new EffectsException(EffectsException.Kind.INVALID_EFFECT,
                     "deltaSeconds must be finite and nonnegative");
         }
-        stepAccumulator += deltaSeconds;
-        int steps = (int) (stepAccumulator / limits.fixedStepSeconds());
-        if (steps > limits.maxCatchUpSteps()) {
-            stepAccumulator -= deltaSeconds;
+        double accumulated = (double) stepAccumulator + deltaSeconds;
+        double rawSteps = Math.floor(accumulated / limits.fixedStepSeconds());
+        if (rawSteps > limits.maxCatchUpSteps()) {
             throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
                     "particle advance exceeds catch-up capacity");
         }
+        int steps = (int) rawSteps;
+        double emissions = emissionAccumulator
+                + definition.emissionRate() * (double) limits.fixedStepSeconds() * steps;
+        if (hasAnchor && Math.floor(emissions) > limits.maxParticles()) {
+            throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
+                    "particle emission exceeds per-advance capacity");
+        }
+        stepAccumulator = (float) accumulated;
         for (int index = 0; index < steps; index++) {
             simulateStep(limits.fixedStepSeconds());
             stepAccumulator -= limits.fixedStepSeconds();

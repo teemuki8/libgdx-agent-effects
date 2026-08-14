@@ -95,6 +95,15 @@ class TrailInstanceTest {
         assertKind(EffectsException.Kind.INVALID_LIFECYCLE, trail::snapshot);
     }
 
+    @Test
+    void rejectsSamplingBeyondConfiguredCatchUpCapacity() {
+        TrailInstance trail = new TrailInstance(definition(4, 10f), limits(4));
+        trail.setAnchor(new EffectAnchor("ship", 0f, 0f, 0f));
+
+        assertKind(EffectsException.Kind.LIMIT_EXCEEDED, () -> trail.advance(2.25f));
+        assertTrue(trail.snapshot().points().isEmpty());
+    }
+
     private static TrailDefinition definition(int points, float lifetime) {
         return new TrailDefinition("ship-trail", "ship", material(),
                 new FloatCurve(List.of(new FloatCurve.Stop(0f, 2f),

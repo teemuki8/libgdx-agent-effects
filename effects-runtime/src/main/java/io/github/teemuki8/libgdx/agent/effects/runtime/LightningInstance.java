@@ -12,6 +12,7 @@ import java.util.Objects;
 /** Explicitly regenerated bounded seeded-lightning instance. */
 public final class LightningInstance implements AutoCloseable {
     private final LightningDefinition definition;
+    private final int maxCatchUpSteps;
     private final StableRandom random;
     private final float[] pointX;
     private final float[] pointY;
@@ -42,6 +43,7 @@ public final class LightningInstance implements AutoCloseable {
             throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
                     "lightning definition exceeds runtime capacity");
         }
+        maxCatchUpSteps = limits.maxCatchUpSteps();
         random = new StableRandom(seed);
         pointX = new float[definition.segmentLimit() + 1];
         pointY = new float[definition.segmentLimit() + 1];
@@ -81,11 +83,22 @@ public final class LightningInstance implements AutoCloseable {
             throw new EffectsException(EffectsException.Kind.INVALID_EFFECT,
                     "deltaSeconds must be finite and nonnegative");
         }
+        if (!hasStart || !hasEnd) {
+            ageSeconds += deltaSeconds;
+            return;
+        }
+        double accumulated = (double) regenerationAccumulator + deltaSeconds;
+        double rawRegenerations = Math.floor(
+                accumulated / definition.regenerationIntervalSeconds());
+        if (rawRegenerations > maxCatchUpSteps) {
+            throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
+                    "lightning advance exceeds catch-up capacity");
+        }
+        int regenerations = (int) rawRegenerations;
         ageSeconds += deltaSeconds;
-        regenerationAccumulator += deltaSeconds;
-        while (hasStart && hasEnd
-                && regenerationAccumulator >= definition.regenerationIntervalSeconds()) {
-            regenerationAccumulator -= definition.regenerationIntervalSeconds();
+        regenerationAccumulator = (float) (accumulated
+                - regenerations * (double) definition.regenerationIntervalSeconds());
+        for (int index = 0; index < regenerations; index++) {
             generation++;
             regenerate();
         }

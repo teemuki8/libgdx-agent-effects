@@ -76,6 +76,15 @@ class BeamAndLightningTest {
                 () -> new LightningInstance(lightningDefinition(), limits(8, 1), 1L));
     }
 
+    @Test
+    void rejectsRegenerationBeyondConfiguredCatchUpCapacity() {
+        LightningInstance lightning = lightning(91L);
+        LightningSnapshot initial = lightning.snapshot();
+
+        assertKind(EffectsException.Kind.LIMIT_EXCEEDED, () -> lightning.advance(4.5f));
+        assertEquals(initial, lightning.snapshot());
+    }
+
     private static LightningInstance lightning(long seed) {
         LightningInstance result = new LightningInstance(lightningDefinition(), limits(), seed);
         result.setAnchor(new EffectAnchor("muzzle", -1f, 0f, 0f));

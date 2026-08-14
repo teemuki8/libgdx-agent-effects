@@ -13,6 +13,7 @@ import java.util.Objects;
 /** Explicitly stepped, fixed-capacity trail sampler. */
 public final class TrailInstance implements AutoCloseable {
     private final TrailDefinition definition;
+    private final int maxCatchUpSteps;
     private final float[] x;
     private final float[] y;
     private final float[] z;
@@ -39,6 +40,7 @@ public final class TrailInstance implements AutoCloseable {
             throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
                     "trail point limit exceeds runtime capacity");
         }
+        maxCatchUpSteps = limits.maxCatchUpSteps();
         x = new float[definition.pointLimit()];
         y = new float[definition.pointLimit()];
         z = new float[definition.pointLimit()];
@@ -66,13 +68,21 @@ public final class TrailInstance implements AutoCloseable {
             throw new EffectsException(EffectsException.Kind.INVALID_EFFECT,
                     "deltaSeconds must be finite and nonnegative");
         }
-        ageAndExpire(deltaSeconds);
         if (!hasAnchor) {
+            ageAndExpire(deltaSeconds);
             return;
         }
-        accumulator += deltaSeconds;
-        while (accumulator >= definition.sampleIntervalSeconds()) {
-            accumulator -= definition.sampleIntervalSeconds();
+        double accumulated = (double) accumulator + deltaSeconds;
+        double rawSamples = Math.floor(accumulated / definition.sampleIntervalSeconds());
+        if (rawSamples > maxCatchUpSteps) {
+            throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
+                    "trail advance exceeds catch-up capacity");
+        }
+        int samples = (int) rawSamples;
+        ageAndExpire(deltaSeconds);
+        accumulator = (float) (accumulated
+                - samples * (double) definition.sampleIntervalSeconds());
+        for (int index = 0; index < samples; index++) {
             sampleCurrentAnchor();
         }
     }
