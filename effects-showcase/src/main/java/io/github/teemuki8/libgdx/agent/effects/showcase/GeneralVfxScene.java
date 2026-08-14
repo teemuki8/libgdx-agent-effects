@@ -33,12 +33,11 @@ import io.github.teemuki8.libgdx.agent.effects.core.RenderPassDefinition;
 import io.github.teemuki8.libgdx.agent.effects.core.RgbaImage;
 import io.github.teemuki8.libgdx.agent.effects.core.RuntimeLimits;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderSource;
-import io.github.teemuki8.libgdx.agent.effects.core.TrailCap;
 import io.github.teemuki8.libgdx.agent.effects.core.TrailDefinition;
-import io.github.teemuki8.libgdx.agent.effects.core.TrailJoin;
 import io.github.teemuki8.libgdx.agent.effects.core.TrailSnapshot;
-import io.github.teemuki8.libgdx.agent.effects.core.TrailUvMode;
 import io.github.teemuki8.libgdx.agent.effects.importer.libgdx.LibgdxParticleImporter;
+import io.github.teemuki8.libgdx.agent.effects.library.BuiltInGeneralEffects;
+import io.github.teemuki8.libgdx.agent.effects.library.BuiltInMaterials;
 import io.github.teemuki8.libgdx.agent.effects.runtime.CpuParticleInstance;
 import io.github.teemuki8.libgdx.agent.effects.runtime.EffectAnchor;
 import io.github.teemuki8.libgdx.agent.effects.libgdx.BeamRenderer;
@@ -63,13 +62,6 @@ import java.util.Objects;
 public final class GeneralVfxScene {
     private static final int SIZE = 32;
     private static final EffectsLimits LIMITS = EffectsLimits.developmentDefaults();
-    private static final ShaderSource COLOR_SHADER = new ShaderSource("""
-            attribute vec2 a_position;
-            attribute vec4 a_color;
-            attribute vec2 a_texCoord0;
-            varying vec4 v_color;
-            void main(){v_color=a_color;gl_Position=vec4(a_position,0.0,1.0);}
-            """, "varying vec4 v_color;void main(){gl_FragColor=v_color;}");
     private static final String TEXTURE_VERTEX = """
             attribute vec2 a_position;
             attribute vec2 a_texCoord0;
@@ -94,7 +86,7 @@ public final class GeneralVfxScene {
         artifacts.add(new ArtifactEvidence("trail", renderTrail()));
         artifacts.add(new ArtifactEvidence("beam", renderBeam()));
         artifacts.add(new ArtifactEvidence("lightning", renderLightning()));
-        artifacts.add(new ArtifactEvidence("cpu-particles", renderParticles("cpu-particles")));
+        artifacts.add(new ArtifactEvidence("cpu-particles", renderSparks()));
         ParticleDefinition selected = particleDefinition("selected-particles");
         ParticleBackendEvidence backend = ParticleBackendSelector.select(selected, capabilities,
                 ParticleFallbackPolicy.FALLBACK_CPU, LIMITS.maxTexturePixels());
@@ -128,11 +120,8 @@ public final class GeneralVfxScene {
     }
 
     private static int renderTrail() {
-        TrailDefinition definition = new TrailDefinition("trail", "ship",
-                colorMaterial("trail-material"), curve(0.3f), gradient(),
-                0.1f, 0f, 4, 1f, TrailJoin.MITER, TrailCap.BUTT,
-                TrailUvMode.STRETCH, 2f);
-        TrailSnapshot snapshot = new TrailSnapshot("trail", List.of(
+        TrailDefinition definition = BuiltInGeneralEffects.shipTrail();
+        TrailSnapshot snapshot = new TrailSnapshot(definition.name(), List.of(
                 trailPoint(-0.8f, -0.3f, 0f), trailPoint(0f, 0.4f, 0.5f),
                 trailPoint(0.8f, -0.3f, 1f)), 0L);
         return renderTarget(() -> {
@@ -143,9 +132,8 @@ public final class GeneralVfxScene {
     }
 
     private static int renderBeam() {
-        BeamDefinition definition = new BeamDefinition("beam", "a", "b",
-                colorMaterial("beam-material"), curve(0.2f), gradient(), 2, 1f);
-        BeamSnapshot snapshot = new BeamSnapshot("beam", List.of(
+        BeamDefinition definition = BuiltInGeneralEffects.energyBeam();
+        BeamSnapshot snapshot = new BeamSnapshot(definition.name(), List.of(
                 new BeamSnapshot.Segment(-0.8f, 0f, 0f, 0f, 0f, 0f,
                         0.2f, 1f, 0.2f, 0.1f, 1f),
                 new BeamSnapshot.Segment(0f, 0f, 0f, 0.8f, 0f, 0f,
@@ -158,10 +146,8 @@ public final class GeneralVfxScene {
     }
 
     private static int renderLightning() {
-        LightningDefinition definition = new LightningDefinition("lightning", "a", "b",
-                colorMaterial("lightning-material"), curve(0.12f), gradient(),
-                2, 1, 0.2f, 0.5f, 1f);
-        LightningSnapshot snapshot = new LightningSnapshot("lightning", List.of(
+        LightningDefinition definition = BuiltInGeneralEffects.arcLightning();
+        LightningSnapshot snapshot = new LightningSnapshot(definition.name(), List.of(
                 new LightningSnapshot.Segment(-0.8f, -0.4f, 0f, 0f, 0.4f, 0f,
                         0.12f, 0.2f, 0.7f, 1f, 1f, false),
                 new LightningSnapshot.Segment(0f, 0.4f, 0f, 0.8f, -0.4f, 0f,
@@ -175,9 +161,9 @@ public final class GeneralVfxScene {
         });
     }
 
-    private static int renderParticles(String name) {
-        ParticleDefinition definition = particleDefinition(name);
-        ParticleSnapshot snapshot = new ParticleSnapshot(name, List.of(
+    private static int renderSparks() {
+        ParticleDefinition definition = BuiltInGeneralEffects.sparks();
+        ParticleSnapshot snapshot = new ParticleSnapshot(definition.name(), List.of(
                 particle(0L, -0.35f, 0f), particle(1L, 0f, 0.35f),
                 particle(2L, 0.35f, 0f)), 0L, 0L);
         return renderParticles(definition, snapshot);
@@ -280,8 +266,7 @@ public final class GeneralVfxScene {
     }
 
     private static Material2dDefinition colorMaterial(String name) {
-        return new Material2dDefinition(name, COLOR_SHADER, BlendMode.ADDITIVE,
-                List.of(), List.of());
+        return BuiltInMaterials.coloredGeometry(name);
     }
 
     private static Mesh coloredQuad() {
