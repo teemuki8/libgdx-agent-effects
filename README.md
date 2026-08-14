@@ -28,7 +28,7 @@ None of them is a dependency of this library. It is built directly on libGDX pri
 (`ShaderProgram`, `FrameBuffer`, `ScreenUtils`) with its own bounded JSON protocol and closed
 stdio MCP surface.
 
-## Shipped v0.2
+## Capabilities
 
 - Declarative effect model (shader source, closed uniform union, bounded effect description) in
   JDK-only `effects-core`.
@@ -43,7 +43,10 @@ stdio MCP surface.
   GL3 ping-pong particles with disclosed GL2 fallback, ordered 2D/3D decals, distortion, and stable
   multipass graphs.
 - Content-only libGDX 2D particle and Flame compatibility importers using explicit registered asset
-  mappings, plus a closed nine-tool stdio MCP surface.
+  mappings, plus a closed eleven-tool stdio MCP surface.
+- An optional JDK-only, target-aware catalog with six original Apache-2.0 effects qualified for
+  desktop OpenGL, and admission of imported shaders only after successful target-specific
+  qualification.
 - Real LWJGL3 qualification fixtures under Xvfb, including deterministic cross-family evidence.
 
 ## Modules
@@ -51,6 +54,7 @@ stdio MCP surface.
 | Module | Purpose | Published artifact |
 | --- | --- | --- |
 | `effects-core` | JDK-only effect/pass-graph schema, diagnostics, bounds | `agent-effects-core` |
+| `effects-library` | JDK-only qualified catalog and bundled effects | `agent-effects-library` |
 | `effects-import` | JDK-only bounded engine shader importers | `agent-effects-import` |
 | `effects-runtime` | JDK-only explicitly stepped bounded visual state | `agent-effects-runtime` |
 | `effects-protocol` | strict bounded JSON commands, results, and errors | `agent-effects-protocol` |
@@ -86,7 +90,8 @@ side by side. See the [showcase guide](docs/guides/showcase.md) for controls and
 See the [Godot import guide](docs/guides/godot-import.md) for the supported `canvas_item` subset,
 Java/MCP usage, fidelity meanings, and qualification boundary.
 See the [general VFX guide](docs/guides/general-vfx.md) for lifecycle, ownership, renderer, fallback,
-and compatibility contracts. The standalone
+and compatibility contracts. See the [effect library guide](docs/guides/effect-library.md) for
+target-aware discovery, bundled qualification limits, and imported-effect admission. The standalone
 [Wings ship-trail composition](docs/examples/wings-ship-trail.java) shows how a game supplies its own
 authoritative transform without introducing a Wings dependency.
 

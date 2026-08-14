@@ -47,9 +47,22 @@ selected backend and fallback reason. Pass-graph evidence reports execution orde
 size, framebuffer evictions, and missing inputs. Protocol and MCP operations return only bounded
 summaries of application-declared names.
 
+## Qualified effect catalog
+
+The optional `effects-library` module provides an immutable in-memory `EffectCatalog` and six
+bundled definitions that reuse these same general-VFX types. Catalog searches and exact lookups
+require explicit `EffectCapabilities`; incompatible variants are absent rather than returned with a
+warning. The bundled variants are qualified only for desktop OpenGL and must not be treated as
+mobile OpenGL ES or WebGL-qualified content.
+
+Catalog definitions contain logical `AssetKey` values, never paths or loaded resources. The
+application resolves those keys and owns all asset loading, persistence, and registration. See the
+[effect library guide](effect-library.md) for direct Java and MCP discovery.
+
 ## Compatibility limits
 
-The Godot importer translates the documented `canvas_item` shader subset. The libGDX 2D particle
+The Godot importer translates the documented `canvas_item` shader subset; there is no Unity or
+Unreal shader importer. The libGDX 2D particle
 and Flame importers translate bounded source text plus explicit source-name to `AssetKey` mappings.
 They never open paths or instantiate engine runtime classes. Unsupported fields produce
 source-located approximation diagnostics. Compilation or import success is not a claim of universal
