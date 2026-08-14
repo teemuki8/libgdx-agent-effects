@@ -14,20 +14,29 @@ final class ParticleTestDefinitions {
     private ParticleTestDefinitions() {}
 
     static ParticleDefinition supported() {
-        return definition(List.of(new ParticleModifier.Gravity(0f, -1f, 0f)));
+        return definition(16, 0f, ParticleCapacityPolicy.DROP_NEWEST,
+                List.of(new ParticleModifier.Gravity(0f, -1f, 0f)));
+    }
+
+    static ParticleDefinition supported(float emissionRate) {
+        return definition(16, emissionRate, ParticleCapacityPolicy.DROP_NEWEST,
+                List.of(new ParticleModifier.Gravity(0f, -1f, 0f)));
     }
 
     static ParticleDefinition unsupportedGpu() {
-        return definition(List.of(new ParticleModifier.Turbulence(0.5f)));
+        return definition(16, 0f, ParticleCapacityPolicy.DROP_NEWEST,
+                List.of(new ParticleModifier.Turbulence(0.5f)));
     }
 
-    private static ParticleDefinition definition(List<ParticleModifier> modifiers) {
+    private static ParticleDefinition definition(int capacity, float emissionRate,
+            ParticleCapacityPolicy policy, List<ParticleModifier> modifiers) {
         Material2dDefinition material = new Material2dDefinition("particles",
                 new ShaderSource("void main(){}", "void main(){}"),
                 BlendMode.ADDITIVE, List.of(), List.of());
-        return new ParticleDefinition("particles", "emitter", material, 16, 0f, 1f, 1f,
+        return new ParticleDefinition("particles", "emitter", material, capacity,
+                emissionRate, 1f, 1f,
                 new FloatCurve(List.of(new FloatCurve.Stop(0f, 0.1f))),
                 new ColorGradient(List.of(new ColorGradient.Stop(0f, 1f, 1f, 1f, 1f))),
-                modifiers, ParticleCapacityPolicy.DROP_NEWEST);
+                modifiers, policy);
     }
 }

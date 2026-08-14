@@ -1,6 +1,7 @@
 package io.github.teemuki8.libgdx.agent.effects.fixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.teemuki8.libgdx.agent.effects.core.BlendMode;
 import io.github.teemuki8.libgdx.agent.effects.core.ColorGradient;
@@ -23,11 +24,16 @@ class GpuParticleFixtureTest {
         GdxFixtureHost.runGl3(() -> {
             try (GpuParticleInstance particles = new GpuParticleInstance(definition(),
                     EffectsLimits.developmentDefaults(),
-                    new EffectCapabilities(3, 0, 4096, true))) {
+                    new EffectCapabilities(3, 0, 4096, true), 7L)) {
+                particles.setAnchor("emitter", 0f, 0f, 0f);
+                particles.burst(4);
                 particles.advance(1f / 60f);
                 assertEquals(ParticleBackendEvidence.Backend.GPU_GL3,
                         particles.backendEvidence().backend());
                 assertEquals(1L, particles.generation());
+                assertEquals(4, particles.snapshot().particles().size());
+                assertTrue(particles.snapshot().particles().stream()
+                        .anyMatch(particle -> particle.x() != 0f || particle.y() != 0f));
             }
         });
     }

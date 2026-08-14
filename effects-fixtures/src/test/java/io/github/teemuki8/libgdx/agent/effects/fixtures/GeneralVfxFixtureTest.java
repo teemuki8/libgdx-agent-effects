@@ -22,6 +22,10 @@ class GeneralVfxFixtureTest {
             }
             assertTrue(evidence.particleBackend().equals("CPU")
                     || evidence.particleBackend().equals("GPU_GL3"));
+            assertTrue(evidence.selectedParticleCount() > 0);
+            if (evidence.particleBackend().equals("GPU_GL3")) {
+                assertEquals(1L, evidence.particleGeneration());
+            }
             assertEquals("APPROXIMATED", evidence.importFidelity());
         });
     }

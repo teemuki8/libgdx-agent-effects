@@ -3,12 +3,15 @@ package io.github.teemuki8.libgdx.agent.effects.libgdx;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.utils.BufferUtils;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectCapabilities;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsLimits;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
+import io.github.teemuki8.libgdx.agent.effects.core.ParticleSnapshot;
 import java.nio.IntBuffer;
 import org.junit.jupiter.api.Test;
 
@@ -44,6 +47,71 @@ class GpuParticleInstanceTest {
                 assertEquals(java.util.List.of(clearColor[0], clearColor[1], clearColor[2],
                         clearColor[3]), floats(clearColor()));
                 assertEquals(GL20.GL_NO_ERROR, Gdx.gl.glGetError());
+            }
+        });
+    }
+
+    @Test
+    void seededBurstsIntegrateIntoBoundedImmutableSnapshots() throws Exception {
+        GdxTestHost.runGl3(() -> {
+            EffectsLimits limits = EffectsLimits.developmentDefaults();
+            ParticleSnapshot first;
+            try (GpuParticleInstance particles = new GpuParticleInstance(
+                    ParticleTestDefinitions.supported(), limits,
+                    new EffectCapabilities(3, 0, 4096, true), 91L)) {
+                particles.setAnchor("emitter", 0.25f, 0.5f, 0f);
+                particles.burst(2);
+                particles.advance(0.25f);
+                first = particles.snapshot();
+                assertEquals(2, first.particles().size());
+                assertTrue(first.particles().stream().allMatch(particle ->
+                        particle.x() != 0.25f || particle.y() != 0.5f));
+                assertThrows(EffectsException.class,
+                        () -> particles.setAnchor("other", 0f, 0f, 0f));
+            }
+            try (GpuParticleInstance particles = new GpuParticleInstance(
+                    ParticleTestDefinitions.supported(), limits,
+                    new EffectCapabilities(3, 0, 4096, true), 91L)) {
+                particles.setAnchor("emitter", 0.25f, 0.5f, 0f);
+                particles.burst(2);
+                particles.advance(0.25f);
+                assertEquals(first, particles.snapshot());
+            }
+        });
+    }
+
+    @Test
+    void burstCapacityPressureIsBoundedAndReported() throws Exception {
+        GdxTestHost.runGl3(() -> {
+            try (GpuParticleInstance particles = new GpuParticleInstance(
+                    ParticleTestDefinitions.supported(), EffectsLimits.developmentDefaults(),
+                    new EffectCapabilities(3, 0, 4096, true), 1L)) {
+                particles.setAnchor("emitter", 0f, 0f, 0f);
+                particles.burst(17);
+                ParticleSnapshot snapshot = particles.snapshot();
+                assertEquals(16, snapshot.particles().size());
+                assertEquals(1L, snapshot.droppedParticles());
+            }
+        });
+    }
+
+    @Test
+    void configuredEmissionAndLifetimeDriveGpuState() throws Exception {
+        GdxTestHost.runGl3(() -> {
+            try (GpuParticleInstance particles = new GpuParticleInstance(
+                    ParticleTestDefinitions.supported(4f), EffectsLimits.developmentDefaults(),
+                    new EffectCapabilities(3, 0, 4096, true), 1L)) {
+                particles.setAnchor("emitter", 0f, 0f, 0f);
+                particles.advance(0.5f);
+                assertEquals(2, particles.snapshot().particles().size());
+            }
+            try (GpuParticleInstance particles = new GpuParticleInstance(
+                    ParticleTestDefinitions.supported(), EffectsLimits.developmentDefaults(),
+                    new EffectCapabilities(3, 0, 4096, true), 1L)) {
+                particles.setAnchor("emitter", 0f, 0f, 0f);
+                particles.burst(1);
+                particles.advance(1f);
+                assertTrue(particles.snapshot().particles().isEmpty());
             }
         });
     }
