@@ -8,6 +8,7 @@ import io.github.teemuki8.libgdx.agent.effects.core.ActiveAttribute;
 import io.github.teemuki8.libgdx.agent.effects.core.ActiveUniform;
 import io.github.teemuki8.libgdx.agent.effects.core.DiagnosticMessage;
 import io.github.teemuki8.libgdx.agent.effects.core.DiagnosticSeverity;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectFamily;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderDiagnostic;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderTargetProfile;
 import java.util.List;

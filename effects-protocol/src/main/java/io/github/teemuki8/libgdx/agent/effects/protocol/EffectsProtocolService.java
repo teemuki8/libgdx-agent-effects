@@ -5,6 +5,7 @@ import io.github.teemuki8.libgdx.agent.effects.core.BeamDefinition;
 import io.github.teemuki8.libgdx.agent.effects.core.DecalDefinition;
 import io.github.teemuki8.libgdx.agent.effects.core.DistortionFieldDefinition;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectDefinition;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectFamily;
 import io.github.teemuki8.libgdx.agent.effects.core.LightningDefinition;
 import io.github.teemuki8.libgdx.agent.effects.core.Material2dDefinition;
 import io.github.teemuki8.libgdx.agent.effects.core.Material3dDefinition;

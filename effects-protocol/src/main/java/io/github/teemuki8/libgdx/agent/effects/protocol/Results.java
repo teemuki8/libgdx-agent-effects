@@ -4,6 +4,7 @@ import io.github.teemuki8.libgdx.agent.effects.core.PixelComparisonResult;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderDiagnostic;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderImportResult;
 import io.github.teemuki8.libgdx.agent.effects.core.FidelityClassification;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectFamily;
 import io.github.teemuki8.libgdx.agent.effects.core.ImportDiagnostic;
 import java.util.List;
 import java.util.Objects;

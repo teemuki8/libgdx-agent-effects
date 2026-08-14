@@ -1,10 +1,12 @@
 package io.github.teemuki8.libgdx.agent.effects.core;
 
+import java.util.Objects;
+
 /** Immutable caller-observed graphics capabilities used for explicit backend selection. */
 public record EffectCapabilities(int glMajor, int glMinor,
         int maxTextureSize, boolean floatTextures, Profile profile) {
     public EffectCapabilities {
-        java.util.Objects.requireNonNull(profile, "profile");
+        Objects.requireNonNull(profile, "profile");
         if (glMajor < 1 || glMajor > 99 || glMinor < 0 || glMinor > 99
                 || maxTextureSize <= 0 || maxTextureSize > 65536) {
             throw new IllegalArgumentException("graphics capabilities are outside hard bounds");
@@ -26,6 +28,19 @@ public record EffectCapabilities(int glMajor, int glMinor,
     public boolean supportsDesktopGlsl150() {
         return profile == Profile.DESKTOP_OPENGL
                 && (glMajor > 3 || glMajor == 3 && glMinor >= 2);
+    }
+
+    /** Whether these actual capabilities meet every declared minimum requirement. */
+    public boolean satisfies(EffectCapabilities required) {
+        Objects.requireNonNull(required, "required");
+        if (profile == Profile.UNKNOWN || required.profile == Profile.UNKNOWN
+                || profile != required.profile) {
+            return false;
+        }
+        boolean version = glMajor > required.glMajor
+                || glMajor == required.glMajor && glMinor >= required.glMinor;
+        return version && maxTextureSize >= required.maxTextureSize
+                && (!required.floatTextures || floatTextures);
     }
 
     /** Closed graphics-profile vocabulary independent of libGDX runtime classes. */
