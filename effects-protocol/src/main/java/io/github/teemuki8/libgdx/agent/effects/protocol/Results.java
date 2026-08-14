@@ -5,6 +5,7 @@ import io.github.teemuki8.libgdx.agent.effects.core.ShaderDiagnostic;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderImportResult;
 import io.github.teemuki8.libgdx.agent.effects.core.FidelityClassification;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectFamily;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectCatalogMatch;
 import io.github.teemuki8.libgdx.agent.effects.core.ImportDiagnostic;
 import java.util.List;
 import java.util.Objects;
@@ -87,6 +88,22 @@ public final class Results {
             if (name.isBlank() || capacity <= 0 || diagnostics.size() > 256) {
                 throw new IllegalArgumentException("invalid bounded particle import result");
             }
+        }
+    }
+
+    public record CatalogSearchResult(List<EffectCatalogMatch> matches, boolean truncated) {
+        public CatalogSearchResult {
+            Objects.requireNonNull(matches, "matches");
+            if (matches.size() > EffectsProtocol.MAX_CATALOG_RESULTS) {
+                throw new IllegalArgumentException("too many catalog matches");
+            }
+            matches = List.copyOf(matches);
+        }
+    }
+
+    public record CatalogLookupResult(EffectCatalogMatch match) {
+        public CatalogLookupResult {
+            Objects.requireNonNull(match, "match");
         }
     }
 }

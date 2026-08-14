@@ -8,6 +8,7 @@ import io.github.teemuki8.libgdx.agent.effects.core.ActiveAttribute;
 import io.github.teemuki8.libgdx.agent.effects.core.ActiveUniform;
 import io.github.teemuki8.libgdx.agent.effects.core.DiagnosticMessage;
 import io.github.teemuki8.libgdx.agent.effects.core.DiagnosticSeverity;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectCapabilities;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectFamily;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderDiagnostic;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderTargetProfile;
@@ -85,5 +86,50 @@ class EffectsJsonTest {
                         + "\"name\":\"x\",\"source\":\"s\",\"anchorName\":\"a\","
                         + "\"materialName\":\"m\",\"assetMappings\":{},"
                         + "\"path\":\"/tmp/x\"}", Requests.ImportParticleRequest.class));
+    }
+    @Test
+    void catalogSearchRequestIsClosedBoundedAndNormalizesTags() throws Exception {
+        ObjectMapper mapper = EffectsJson.mapper();
+        EffectCapabilities target = new EffectCapabilities(
+                4, 6, 16384, true, EffectCapabilities.Profile.DESKTOP_OPENGL);
+        Requests.CatalogSearchRequest request = new Requests.CatalogSearchRequest(
+                target, EffectFamily.TRAIL, List.of("space", "glow"), 12);
+
+        Requests.CatalogSearchRequest decoded = mapper.readValue(
+                mapper.writeValueAsString(request), Requests.CatalogSearchRequest.class);
+
+        assertEquals(List.of("glow", "space"), decoded.tags());
+        assertThrows(IllegalArgumentException.class, () -> new Requests.CatalogSearchRequest(
+                target, null, List.of("glow", "glow"), 12));
+        assertThrows(IllegalArgumentException.class, () -> new Requests.CatalogSearchRequest(
+                target, null, List.of(), EffectsProtocol.MAX_CATALOG_RESULTS + 1));
+        assertThrows(IllegalArgumentException.class, () -> new Requests.CatalogSearchRequest(
+                target, null, List.of("x".repeat(EffectsProtocol.MAX_IDENTIFIER_CHARS + 1)), 1));
+        assertThrows(Exception.class, () -> mapper.readValue(
+                "{\"target\":{\"glMajor\":4,\"glMinor\":6,\"maxTextureSize\":16384,"
+                        + "\"floatTextures\":true,\"profile\":\"DESKTOP_OPENGL\"},"
+                        + "\"family\":\"TRAIL\",\"tags\":[],\"limit\":12,\"path\":\"x\"}",
+                Requests.CatalogSearchRequest.class));
+    }
+
+    @Test
+    void catalogLookupRequestIsClosedAndRequiresQualifiedTarget() throws Exception {
+        ObjectMapper mapper = EffectsJson.mapper();
+        EffectCapabilities target = new EffectCapabilities(
+                3, 2, 8192, false, EffectCapabilities.Profile.DESKTOP_OPENGL);
+        Requests.CatalogLookupRequest request = new Requests.CatalogLookupRequest(
+                "ship-trail", target);
+
+        assertEquals(request, mapper.readValue(mapper.writeValueAsString(request),
+                Requests.CatalogLookupRequest.class));
+        assertThrows(IllegalArgumentException.class, () -> new Requests.CatalogLookupRequest(
+                "ship-trail", new EffectCapabilities(3, 2, 8192, false)));
+        assertThrows(IllegalArgumentException.class, () -> new Requests.CatalogLookupRequest(
+                "x".repeat(EffectsProtocol.MAX_IDENTIFIER_CHARS + 1), target));
+        assertThrows(Exception.class, () -> mapper.readValue(
+                "{\"id\":\"ship-trail\",\"target\":{\"glMajor\":3,\"glMinor\":2,"
+                        + "\"maxTextureSize\":8192,\"floatTextures\":false,"
+                        + "\"profile\":\"DESKTOP_OPENGL\"},\"extra\":true}",
+                Requests.CatalogLookupRequest.class));
     }
 }

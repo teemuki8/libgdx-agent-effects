@@ -1,6 +1,7 @@
 package io.github.teemuki8.libgdx.agent.effects.protocol;
 
 import io.github.teemuki8.libgdx.agent.effects.core.EffectDescription;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectCatalog;
 import io.github.teemuki8.libgdx.agent.effects.core.BeamDefinition;
 import io.github.teemuki8.libgdx.agent.effects.core.DecalDefinition;
 import io.github.teemuki8.libgdx.agent.effects.core.DistortionFieldDefinition;
@@ -26,6 +27,7 @@ public final class EffectsProtocolService {
     private final Map<String, Results.EffectSummaryResult> summaries = new LinkedHashMap<>();
     private EffectsBackend backend;
     private EffectsImportBackend importBackend;
+    private EffectCatalog catalog;
 
     public synchronized EffectsProtocolService declare(EffectDescription effect) {
         effects.put(effect.name(), effect);
@@ -95,6 +97,17 @@ public final class EffectsProtocolService {
     /** The wired importer, or {@code null} when source import is unavailable. */
     public synchronized EffectsImportBackend importBackend() {
         return importBackend;
+    }
+
+    /** Wires the optional target-aware catalog registered by application code. */
+    public synchronized EffectsProtocolService catalog(EffectCatalog catalog) {
+        this.catalog = Objects.requireNonNull(catalog, "catalog");
+        return this;
+    }
+
+    /** The registered catalog, or {@code null} when catalog tools are unavailable. */
+    public synchronized EffectCatalog catalog() {
+        return catalog;
     }
 
     private static Results.EffectSummaryResult summarize(EffectDefinition definition) {

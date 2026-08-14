@@ -1,5 +1,7 @@
 package io.github.teemuki8.libgdx.agent.effects.protocol;
 
+import io.github.teemuki8.libgdx.agent.effects.core.EffectCapabilities;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectFamily;
 import io.github.teemuki8.libgdx.agent.effects.core.PixelComparisonSpec;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderTargetProfile;
 import java.util.HashSet;
@@ -7,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeSet;
 
 /** Closed request records. */
 public final class Requests {
@@ -85,6 +88,37 @@ public final class Requests {
                 requireIdentifier(sourceName, "asset source name");
                 requireIdentifier(registeredName, "registered asset name");
             });
+        }
+    }
+
+    public record CatalogSearchRequest(EffectCapabilities target, EffectFamily family,
+            List<String> tags, int limit) {
+        public CatalogSearchRequest {
+            Objects.requireNonNull(target, "target");
+            Objects.requireNonNull(tags, "tags");
+            if (target.profile() == EffectCapabilities.Profile.UNKNOWN
+                    || tags.size() > EffectsProtocol.MAX_CATALOG_TAGS
+                    || limit <= 0 || limit > EffectsProtocol.MAX_CATALOG_RESULTS) {
+                throw new IllegalArgumentException("invalid bounded catalog search request");
+            }
+            TreeSet<String> normalized = new TreeSet<>();
+            for (String tag : tags) {
+                requireIdentifier(tag, "catalog tag");
+                if (!normalized.add(tag)) {
+                    throw new IllegalArgumentException("duplicate catalog tag");
+                }
+            }
+            tags = List.copyOf(normalized);
+        }
+    }
+
+    public record CatalogLookupRequest(String id, EffectCapabilities target) {
+        public CatalogLookupRequest {
+            requireIdentifier(id, "catalog id");
+            Objects.requireNonNull(target, "target");
+            if (target.profile() == EffectCapabilities.Profile.UNKNOWN) {
+                throw new IllegalArgumentException("catalog target profile must be explicit");
+            }
         }
     }
 
