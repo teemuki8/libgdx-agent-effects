@@ -16,7 +16,7 @@ is irreversible and requires explicit authorization.
 4. Generate and inspect the release POMs without publishing:
 
    ```bash
-   ./gradlew -PreleaseVersion=0.2.0 \
+   ./gradlew -PreleaseVersion=0.2.0 -PreleaseCommit=<candidate-commit> \
      generatePomFileForMavenJavaPublication \
      --warning-mode=fail
    ```
@@ -32,7 +32,9 @@ gate, signs and uploads the six published modules, and transfers them to Central
 user-managed publication.
 
 The staging workflow must reach success before continuing. Its success means the deployment was
-uploaded for Central validation; it does not mean the artifacts are public.
+uploaded for Central validation; it does not mean the artifacts are public. Both staging and
+management verify that the requested tag resolves to the checked-out commit. The signed POM embeds
+that exact commit, and management rejects a deployment whose POM does not match the tag and commit.
 
 ## Inspect and publish
 

@@ -17,7 +17,8 @@ Each published module provides:
 
 Each POM declares the exact GAV coordinates, project name and description, project URL,
 Apache-2.0 license, developer identity, and SCM connection. Published dependencies use fixed
-versions; project dependencies resolve to the same release version.
+versions; project dependencies resolve to the same release version. Its SCM tag and
+`release.commit` property bind the signed metadata to the exact repository tag and source commit.
 
 ## Trust boundary
 

@@ -8,9 +8,8 @@ All notable changes follow Keep a Changelog structure.
 
 ### Added
 
-- `effects-import`: bounded shader migration assistance for Godot 4 `canvas_item` shaders plus
-  Unity, Unreal, and generic GLSL source classification, with fidelity diagnostics, deterministic
-  output, and real-GL qualification of translated Godot shaders.
+- `effects-import`: bounded shader migration assistance for Godot 4 `canvas_item` shaders, with
+  fidelity diagnostics, deterministic output, and real-GL qualification of translated shaders.
 - `effects-core` and `effects-runtime`: immutable definitions, snapshots, and explicit lifecycle for
   sprite/mesh materials, trails and ribbons, beams and seeded lightning, CPU particles, 2D/3D
   decals, distortion fields, and bounded post-process graphs.
@@ -18,8 +17,8 @@ All notable changes follow Keep a Changelog structure.
   bounded GL3 ping-pong particles with a disclosed deterministic CPU fallback.
 - Content-only libGDX 2D particle and Flame compatibility importers with explicit application-owned
   asset mappings.
-- Closed protocol and MCP operations for importing, compiling, inspecting, and snapshotting the
-  wider effect model.
+- Closed protocol and MCP operations for importing shaders and inspecting or snapshotting the wider
+  effect model; compilation remains limited to declared shader effects.
 - An unpublished interactive LWJGL3 before/after showcase, cross-family native fixtures, and a
   Wings ship-trail composition example built through the public API.
 
