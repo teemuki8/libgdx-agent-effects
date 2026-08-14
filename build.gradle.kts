@@ -1,4 +1,5 @@
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.plugins.quality.CheckstyleExtension
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -15,6 +16,7 @@ import java.util.zip.ZipFile
 val publishedModules = setOf(
     "effects-core",
     "effects-import",
+    "effects-runtime",
     "effects-protocol",
     "effects-libgdx",
     "effects-mcp",
@@ -22,6 +24,7 @@ val publishedModules = setOf(
 val artifactNames = mapOf(
     "effects-core" to "agent-effects-core",
     "effects-import" to "agent-effects-import",
+    "effects-runtime" to "agent-effects-runtime",
     "effects-protocol" to "agent-effects-protocol",
     "effects-libgdx" to "agent-effects-libgdx",
     "effects-mcp" to "agent-effects-mcp",
@@ -188,4 +191,43 @@ tasks.register("javadoc") {
     group = "documentation"
     description = "Generates warning-free Javadocs for all published modules"
     dependsOn(publishedModules.map { project(":$it").tasks.named("javadoc") })
+}
+
+val verifyModuleBoundaries = tasks.register("verifyModuleBoundaries") {
+    group = "verification"
+    description = "Verifies dependency boundaries for JDK-only effects modules"
+    doLast {
+        val allowedProjects = mapOf(
+            "effects-core" to emptySet(),
+            "effects-runtime" to setOf(":effects-core"),
+            "effects-import" to setOf(":effects-core"),
+        )
+        val forbiddenGroups = listOf(
+            "com.badlogicgames.gdx",
+            "com.fasterxml.jackson",
+            "io.modelcontextprotocol",
+        )
+        allowedProjects.forEach { (moduleName, allowed) ->
+            val module = project(":$moduleName")
+            listOf("api", "implementation").forEach { configurationName ->
+                module.configurations.getByName(configurationName).dependencies.forEach { dependency ->
+                    if (dependency is ProjectDependency) {
+                        check(dependency.path in allowed) {
+                            "$moduleName must not depend on ${dependency.path}"
+                        }
+                    } else {
+                        check(forbiddenGroups.none { dependency.group?.startsWith(it) == true }) {
+                            "$moduleName must not depend on ${dependency.group}:${dependency.name}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+subprojects {
+    tasks.named("check") {
+        dependsOn(verifyModuleBoundaries)
+    }
 }

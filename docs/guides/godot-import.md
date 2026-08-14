@@ -66,7 +66,7 @@ and renderer and stored with shader, input, project-setting, dimension, and capt
 
 ## Using imported materials in wider effects
 
-`Material2dDefinition` is deliberately independent of geometry. The approved general-VFX program
+`Material2dDefinition` is deliberately independent of geometry. The implemented general-VFX API
 uses the same material contract for sprites, trail/ribbon meshes, particles, beams, lightning,
 decals, and distortion producers. The importer supplies the material; each runtime effect still
 supplies its own bounded simulation, geometry, lifecycle, and host semantics.

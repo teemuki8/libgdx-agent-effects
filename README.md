@@ -39,10 +39,12 @@ stdio MCP surface.
 - Tolerance- and region-mask-aware pixel comparison over captured framebuffer output.
 - Bounded Godot 4 `canvas_item` parsing and semantic translation to GLSL ES 100/300, with explicit
   mappings, approximation diagnostics, real-GL qualification, and no path/include resolution.
-- A closed six-tool stdio MCP surface and a real LWJGL3 qualification fixture under Xvfb.
-
-The approved general-VFX program next carries materials into trails, particles, beams, lightning,
-decals, distortion, post-processing, and GPU-particle fallback paths. See `docs/roadmap.md`.
+- Explicitly stepped trails/ribbons, beams, seeded lightning, deterministic CPU particles, bounded
+  GL3 ping-pong particles with disclosed GL2 fallback, ordered 2D/3D decals, distortion, and stable
+  multipass graphs.
+- Content-only libGDX 2D particle and Flame compatibility importers using explicit registered asset
+  mappings, plus a closed nine-tool stdio MCP surface.
+- Real LWJGL3 qualification fixtures under Xvfb, including deterministic cross-family evidence.
 
 ## Modules
 
@@ -50,6 +52,7 @@ decals, distortion, post-processing, and GPU-particle fallback paths. See `docs/
 | --- | --- | --- |
 | `effects-core` | JDK-only effect/pass-graph schema, diagnostics, bounds | `agent-effects-core` |
 | `effects-import` | JDK-only bounded engine shader importers | `agent-effects-import` |
+| `effects-runtime` | JDK-only explicitly stepped bounded visual state | `agent-effects-runtime` |
 | `effects-protocol` | strict bounded JSON commands, results, and errors | `agent-effects-protocol` |
 | `effects-libgdx` | render-thread shader compile, passes, deterministic preview | `agent-effects-libgdx` |
 | `effects-mcp` | closed stdio MCP tool catalog | `agent-effects-mcp` |
@@ -82,6 +85,10 @@ side by side. See the [showcase guide](docs/guides/showcase.md) for controls and
 
 See the [Godot import guide](docs/guides/godot-import.md) for the supported `canvas_item` subset,
 Java/MCP usage, fidelity meanings, and qualification boundary.
+See the [general VFX guide](docs/guides/general-vfx.md) for lifecycle, ownership, renderer, fallback,
+and compatibility contracts. The standalone
+[Wings ship-trail composition](docs/examples/wings-ship-trail.java) shows how a game supplies its own
+authoritative transform without introducing a Wings dependency.
 
 Release maintainers should follow the guarded [release procedure](docs/guides/releasing.md) and
 [Sonatype Central compliance contract](docs/sonatype-central-compliance.md). Maven Central

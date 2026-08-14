@@ -20,6 +20,14 @@ final class GdxTestHost {
     }
 
     static void run(TestBody body) throws Exception {
+        run(body, false);
+    }
+
+    static void runGl3(TestBody body) throws Exception {
+        run(body, true);
+    }
+
+    private static void run(TestBody body, boolean gl3) throws Exception {
         AtomicReference<Throwable> failure = new AtomicReference<>();
         CountDownLatch started = new CountDownLatch(1);
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
@@ -29,6 +37,9 @@ final class GdxTestHost {
         config.disableAudio(true);
         config.useVsync(false);
         config.setIdleFPS(60);
+        if (gl3) {
+            config.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 2);
+        }
         Thread main = new Thread(() -> {
             try {
                 new Lwjgl3Application(new ApplicationAdapter() {

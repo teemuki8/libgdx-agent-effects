@@ -7,6 +7,7 @@ public final class EffectsException extends RuntimeException {
 
     public enum Kind {
         INVALID_EFFECT,
+        INVALID_LIFECYCLE,
         INVALID_IMPORT,
         UNSUPPORTED_FEATURE,
         COMPILE_FAILED,

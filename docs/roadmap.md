@@ -17,11 +17,22 @@ The first publishable increment. Deliverables, in dependency order:
 Each increment lands with its ADR, a vertical slice through Java API, protocol, MCP, and the fixture,
 and pixel-comparison evidence where applicable.
 
-## General-VFX program
+## General-VFX program — implemented
 
-The approved implementation sequence after the importer is an explicit JDK-only runtime lifecycle,
+The completed implementation sequence after the importer is an explicit JDK-only runtime lifecycle,
 sprite/mesh materials, trails and ribbons, beams and lightning, deterministic CPU particles, GL3
 GPU particles with a disclosed GL2 CPU fallback, 2D/3D decals, distortion and bounded multipass
 graphs, native libGDX particle compatibility, cross-family protocol/MCP operations, and a Wings
 ship-trail example with qualification evidence. The detailed bounded contracts and verification
 gates are in `docs/superpowers/plans/2026-08-14-general-vfx-program.md`.
+
+Applications create seeded instances with a
+closed anchor set, submit bounded visual events, advance an explicit fixed step, consume immutable
+snapshots, and release capacity through `close()`. It owns no loop, timer, thread, game object, or GL
+resource.
+
+Every requested family now has immutable bounded contracts, deterministic runtime state where
+applicable, render-thread adapters, focused tests, and native qualification. Native libGDX/Flame
+particle compatibility, closed protocol/MCP summaries, the cross-family showcase fixture, and the
+Wings ship-trail composition example are included. Publication remains a separately authorized
+operation.

@@ -37,6 +37,7 @@ public final class EffectsShowcaseApplication extends ApplicationAdapter {
     private final List<ShowcasePreset> presets = ShowcasePresets.all();
     private final ShowcaseState state = new ShowcaseState(presets);
     private final RgbaImage sourceImage = BuiltInScene.create();
+    private final GeneralVfxScene generalVfxScene = new GeneralVfxScene();
 
     private PreviewRenderer renderer;
     private PreviewPngWriter pngWriter;
@@ -188,6 +189,8 @@ public final class EffectsShowcaseApplication extends ApplicationAdapter {
         }
         font.setColor(0.86f, 0.90f, 1f, 1f);
         font.draw(batch, "libGDX Agent Effects Showcase", 18f, height - 14f);
+        font.draw(batch, "General VFX: " + generalVfxScene.artifactNames().size()
+                + " qualified families", Math.max(420f, width - 300f), height - 14f);
         font.setColor(0.58f, 0.64f, 0.76f, 1f);
         font.draw(batch, "PRACTICAL", 20f, height - 82f);
         font.draw(batch, "FLASHY", 20f, height - 306f);

@@ -25,7 +25,14 @@ final class GdxFixtureHost {
         runAsync(() -> {
             body.run();
             return CompletableFuture.completedFuture(null);
-        });
+        }, false);
+    }
+
+    static void runGl3(TestBody body) throws Exception {
+        runAsync(() -> {
+            body.run();
+            return CompletableFuture.completedFuture(null);
+        }, true);
     }
 
     interface AsyncTestBody {
@@ -33,6 +40,10 @@ final class GdxFixtureHost {
     }
 
     static void runAsync(AsyncTestBody body) throws Exception {
+        runAsync(body, false);
+    }
+
+    private static void runAsync(AsyncTestBody body, boolean gl3) throws Exception {
         AtomicReference<Throwable> failure = new AtomicReference<>();
         CountDownLatch started = new CountDownLatch(1);
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
@@ -42,6 +53,9 @@ final class GdxFixtureHost {
         config.disableAudio(true);
         config.useVsync(false);
         config.setIdleFPS(60);
+        if (gl3) {
+            config.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 2);
+        }
         Thread main = new Thread(() -> {
             try {
                 new Lwjgl3Application(new ApplicationAdapter() {

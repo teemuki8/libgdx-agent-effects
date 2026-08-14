@@ -41,10 +41,10 @@ jobs:
       - name: Check backend-neutral code on Windows
         if: runner.os == 'Windows'
         shell: pwsh
-        run: .\gradlew.bat clean check javadoc -x :effects-libgdx:test -x :effects-fixtures:test --warning-mode=fail
+        run: .\gradlew.bat clean check javadoc -x :effects-libgdx:test -x :effects-fixtures:test -x :effects-showcase:test --warning-mode=fail
       - name: Check backend-neutral code on macOS
         if: runner.os == 'macOS'
-        run: ./gradlew clean check javadoc -x :effects-libgdx:test -x :effects-fixtures:test --warning-mode=fail
+        run: ./gradlew clean check javadoc -x :effects-libgdx:test -x :effects-fixtures:test -x :effects-showcase:test --warning-mode=fail
       - name: Compile libGDX tests on Windows
         if: runner.os == 'Windows'
         shell: pwsh
@@ -59,6 +59,13 @@ jobs:
       - name: Compile native fixture on macOS
         if: runner.os == 'macOS'
         run: ./gradlew :effects-fixtures:testClasses --warning-mode=fail
+      - name: Compile showcase tests on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: .\gradlew.bat :effects-showcase:testClasses --warning-mode=fail
+      - name: Compile showcase tests on macOS
+        if: runner.os == 'macOS'
+        run: ./gradlew :effects-showcase:testClasses --warning-mode=fail
       - name: Retain failed reports
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

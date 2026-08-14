@@ -5,6 +5,8 @@ plugins {
 dependencies {
     implementation(project(":effects-core"))
     implementation(project(":effects-libgdx"))
+    implementation(project(":effects-runtime"))
+    implementation(project(":effects-import"))
     implementation(libs.gdx.backend.lwjgl3)
     runtimeOnly("com.badlogicgames.gdx:gdx-platform:${libs.versions.gdx.get()}:natives-desktop")
 }

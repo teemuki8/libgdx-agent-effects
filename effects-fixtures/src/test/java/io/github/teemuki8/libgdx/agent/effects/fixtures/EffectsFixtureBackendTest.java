@@ -7,12 +7,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.badlogic.gdx.Gdx;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectDescription;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectSnapshot;
+import io.github.teemuki8.libgdx.agent.effects.core.BlendMode;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsLimits;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderSource;
+import io.github.teemuki8.libgdx.agent.effects.core.Material2dDefinition;
 import io.github.teemuki8.libgdx.agent.effects.libgdx.DefaultVertexShader;
 import io.github.teemuki8.libgdx.agent.effects.mcp.EffectsToolHandler;
 import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsProtocolService;
+import io.github.teemuki8.libgdx.agent.effects.protocol.EffectFamily;
 import io.github.teemuki8.libgdx.agent.effects.protocol.Results;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.List;
@@ -101,6 +105,30 @@ class EffectsFixtureBackendTest {
                 assertEquals("STRUCTURALLY_EQUIVALENT",
                         ((Map<?, ?>) result.structuredContent()).get("result") instanceof Map<?, ?> map
                                 ? map.get("fidelity") : null);
+            }
+        });
+    }
+
+    @Test
+    void backendSummarizesOnlyExplicitlyRegisteredImmutableSnapshots() throws Exception {
+        GdxFixtureHost.run(() -> {
+            Material2dDefinition material = new Material2dDefinition("ship-material",
+                    new ShaderSource("void main(){}", "void main(){}"), BlendMode.ADDITIVE,
+                    List.of(), List.of());
+            EffectsProtocolService service = new EffectsProtocolService()
+                    .declareDefinition(material);
+            try (EffectsFixtureBackend backend =
+                    new EffectsFixtureBackend(service, EffectsLimits.developmentDefaults())) {
+                backend.registerSnapshot(new EffectSnapshot(material.name(), 7L, 4L, 0.25f,
+                        List.of(new EffectSnapshot.Anchor("ship", 1f, 2f, 0f)), List.of()));
+
+                Results.SnapshotSummaryResult summary = backend.snapshotSummary(material.name())
+                        .toCompletableFuture().join();
+
+                assertEquals(EffectFamily.MATERIAL_2D, summary.family());
+                assertEquals(4L, summary.stepOrGeneration());
+                assertEquals(1, summary.elementCount());
+                assertEquals(List.of("anchors=1", "events=0"), summary.evidence());
             }
         });
     }

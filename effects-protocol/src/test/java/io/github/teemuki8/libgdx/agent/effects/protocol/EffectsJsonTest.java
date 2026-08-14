@@ -11,6 +11,7 @@ import io.github.teemuki8.libgdx.agent.effects.core.DiagnosticSeverity;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderDiagnostic;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderTargetProfile;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class EffectsJsonTest {
@@ -52,5 +53,36 @@ class EffectsJsonTest {
                 "{\"name\":\"x\",\"source\":\"s\",\"targetProfiles\":[\"GLSL_ES_100\"],"
                         + "\"path\":\"/tmp/x\"}",
                 Requests.ImportGodotCanvasRequest.class));
+    }
+
+    @Test
+    void roundTripsEveryClosedEffectFamilySummary() throws Exception {
+        ObjectMapper mapper = EffectsJson.mapper();
+        for (EffectFamily family : EffectFamily.values()) {
+            Results.EffectSummaryResult summary = new Results.EffectSummaryResult(
+                    "effect", family, 8, List.of("bounded"));
+            String json = mapper.writeValueAsString(summary);
+            assertEquals(summary, mapper.readValue(json, Results.EffectSummaryResult.class));
+        }
+    }
+
+    @Test
+    void particleImportRequestIsVersionedClosedAndContainsMappingsNotPaths() throws Exception {
+        ObjectMapper mapper = EffectsJson.mapper();
+        Requests.ImportParticleRequest request = new Requests.ImportParticleRequest("1",
+                ParticleSourceFormat.LIBGDX_2D, "sparks", "source", "emitter",
+                "particle-material", Map.of("spark.png", "spark_region"));
+        assertEquals(request, mapper.readValue(mapper.writeValueAsString(request),
+                Requests.ImportParticleRequest.class));
+        assertThrows(Exception.class, () -> mapper.readValue(
+                "{\"schemaVersion\":\"2\",\"format\":\"LIBGDX_2D\","
+                        + "\"name\":\"x\",\"source\":\"s\",\"anchorName\":\"a\","
+                        + "\"materialName\":\"m\",\"assetMappings\":{}}",
+                Requests.ImportParticleRequest.class));
+        assertThrows(Exception.class, () -> mapper.readValue(
+                "{\"schemaVersion\":\"1\",\"format\":\"LIBGDX_2D\","
+                        + "\"name\":\"x\",\"source\":\"s\",\"anchorName\":\"a\","
+                        + "\"materialName\":\"m\",\"assetMappings\":{},"
+                        + "\"path\":\"/tmp/x\"}", Requests.ImportParticleRequest.class));
     }
 }
