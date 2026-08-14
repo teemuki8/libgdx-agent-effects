@@ -168,6 +168,12 @@ public final class CpuParticleInstance implements AutoCloseable {
                 velocityX[index] *= factor;
                 velocityY[index] *= factor;
                 velocityZ[index] *= factor;
+            } else if (modifier instanceof ParticleModifier.Turbulence turbulence) {
+                float phase = spawnId[index] * 0.754877666f + age[index] * 3.1f;
+                velocityX[index] += (float) Math.sin(phase) * turbulence.strength()
+                        * deltaSeconds;
+                velocityY[index] += (float) Math.cos(phase) * turbulence.strength()
+                        * deltaSeconds;
             }
         }
     }
