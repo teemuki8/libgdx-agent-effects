@@ -24,6 +24,25 @@ final class CatalogTestFixtures {
                 List.of(pass), "output", 1);
     }
 
+    static EffectCatalogVariant variant(EffectDefinition definition,
+            EffectCapabilities... qualifiedTargets) {
+        return new EffectCatalogVariant("portable", 0, definition,
+                List.of(qualifiedTargets));
+    }
+
+    static EffectCatalogEntry entry(String id, List<String> tags,
+            EffectCatalogVariant... variants) {
+        return new EffectCatalogEntry(id, "1.0.0", "Ship trail",
+                "A reusable ship trail.", EffectFamily.from(variants[0].definition()),
+                tags, "Apache-2.0", "Original project content", null,
+                List.of(), List.of(variants));
+    }
+
+    static EffectCapabilities desktopGl2() {
+        return new EffectCapabilities(2, 0, 2048, false,
+                EffectCapabilities.Profile.DESKTOP_OPENGL);
+    }
+
     private static Material2dDefinition material(String name) {
         return new Material2dDefinition(name,
                 new ShaderSource("void main(){}", "void main(){}"),
