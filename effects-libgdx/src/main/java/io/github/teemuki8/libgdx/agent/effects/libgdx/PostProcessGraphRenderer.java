@@ -134,7 +134,7 @@ public final class PostProcessGraphRenderer implements AutoCloseable {
     private void validateDimensions(int width, int height) {
         if (width <= 0 || height <= 0 || width > limits.maxRenderWidth()
                 || height > limits.maxRenderHeight()
-                || (long) width * height > limits.maxTexturePixels()) {
+                || (long) width * height > limits.maxFramebufferPixels()) {
             throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
                     "post-process dimensions exceed configured limits");
         }

@@ -29,6 +29,14 @@ public record BeamDefinition(String name, String startAnchor, String endAnchor,
     @Override public BeamDefinition validate(EffectsLimits limits) {
         Objects.requireNonNull(limits, "limits");
         material.validate(limits);
+        width.validate(limits);
+        color.validate(limits);
+        if (segmentLimit > limits.maxBeamSegments()
+                || 1 + width.stops().size() + color.stops().size()
+                        > limits.maxDefinitionNodes()) {
+            throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
+                    "beam definition exceeds configured limits");
+        }
         return this;
     }
 

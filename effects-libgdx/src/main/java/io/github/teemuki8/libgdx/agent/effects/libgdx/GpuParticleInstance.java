@@ -76,6 +76,7 @@ public final class GpuParticleInstance implements AutoCloseable {
         this.definition = Objects.requireNonNull(definition, "definition");
         Objects.requireNonNull(limits, "limits");
         Objects.requireNonNull(capabilities, "capabilities");
+        definition.validate(limits);
         backendEvidence = ParticleBackendSelector.select(definition, capabilities,
                 ParticleFallbackPolicy.REQUIRE_GPU, limits.maxTexturePixels());
         dimensions = ParticleBackendSelector.dimensions(

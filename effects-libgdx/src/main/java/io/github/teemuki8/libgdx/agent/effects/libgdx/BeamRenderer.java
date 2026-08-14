@@ -29,15 +29,14 @@ public final class BeamRenderer implements AutoCloseable {
 
     /** Creates a renderer for one declared straight beam. */
     public BeamRenderer(BeamDefinition definition, EffectsLimits limits) {
-        this(definition.name(), definition.material(), definition.segmentLimit(), limits);
-        definition.validate(limits);
+        this(definition.name(), definition.material(),
+                validatedCapacity(definition, limits), limits);
     }
 
     /** Creates a renderer for one declared lightning effect, including its branches. */
     public BeamRenderer(LightningDefinition definition, EffectsLimits limits) {
         this(definition.name(), definition.material(),
-                Math.addExact(definition.segmentLimit(), definition.branchLimit()), limits);
-        definition.validate(limits);
+                validatedCapacity(definition, limits), limits);
     }
 
     private BeamRenderer(String name, Material2dDefinition material,
@@ -53,6 +52,16 @@ public final class BeamRenderer implements AutoCloseable {
                 new VertexAttribute(Usage.ColorUnpacked, 4, "a_color"),
                 new VertexAttribute(Usage.TextureCoordinates, 2, "a_texCoord0"));
         vertices = new float[Math.multiplyExact(vertexCapacity, FLOATS_PER_VERTEX)];
+    }
+
+    private static int validatedCapacity(BeamDefinition definition, EffectsLimits limits) {
+        Objects.requireNonNull(definition, "definition").validate(limits);
+        return definition.segmentLimit();
+    }
+
+    private static int validatedCapacity(LightningDefinition definition, EffectsLimits limits) {
+        Objects.requireNonNull(definition, "definition").validate(limits);
+        return Math.addExact(definition.segmentLimit(), definition.branchLimit());
     }
 
     /** Draws a matching straight-beam snapshot. */

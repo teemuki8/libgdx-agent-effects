@@ -43,6 +43,16 @@ public record FloatCurve(List<Stop> stops) {
         return stops.getLast().value();
     }
 
+    /** Validates this curve against caller-configured stop limits. */
+    public FloatCurve validate(EffectsLimits limits) {
+        Objects.requireNonNull(limits, "limits");
+        if (stops.size() > limits.maxCurveStops()) {
+            throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
+                    "curve stop count exceeds configured limit");
+        }
+        return this;
+    }
+
     /** One finite curve control point. */
     public record Stop(float position, float value) {
         public Stop {

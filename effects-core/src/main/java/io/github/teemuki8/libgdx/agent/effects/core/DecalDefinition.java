@@ -30,6 +30,10 @@ public record DecalDefinition(String name, EffectDefinition material, int capaci
     @Override public DecalDefinition validate(EffectsLimits limits) {
         Objects.requireNonNull(limits, "limits");
         material.validate(limits);
+        if (capacity > limits.maxDecals()) {
+            throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
+                    "decal capacity exceeds configured limit");
+        }
         return this;
     }
 

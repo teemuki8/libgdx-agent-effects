@@ -48,10 +48,18 @@ public record TrailDefinition(
     @Override public TrailDefinition validate(EffectsLimits limits) {
         Objects.requireNonNull(limits, "limits");
         material.validate(limits);
+        width.validate(limits);
+        color.validate(limits);
         if (name.length() > limits.maxShaderSourceChars()
                 || anchorName.length() > limits.maxShaderSourceChars()) {
             throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
                     "trail text exceeds limits");
+        }
+        if (pointLimit > limits.maxTrailPoints()
+                || 1 + width.stops().size() + color.stops().size()
+                        > limits.maxDefinitionNodes()) {
+            throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
+                    "trail definition exceeds configured limits");
         }
         return this;
     }

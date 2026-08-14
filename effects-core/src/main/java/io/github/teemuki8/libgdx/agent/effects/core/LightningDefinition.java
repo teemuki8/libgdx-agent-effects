@@ -32,6 +32,15 @@ public record LightningDefinition(String name, String startAnchor, String endAnc
     @Override public LightningDefinition validate(EffectsLimits limits) {
         Objects.requireNonNull(limits, "limits");
         material.validate(limits);
+        width.validate(limits);
+        color.validate(limits);
+        if (segmentLimit > limits.maxBeamSegments()
+                || branchLimit > limits.maxLightningBranches()
+                || 1 + width.stops().size() + color.stops().size()
+                        > limits.maxDefinitionNodes()) {
+            throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
+                    "lightning definition exceeds configured limits");
+        }
         return this;
     }
 

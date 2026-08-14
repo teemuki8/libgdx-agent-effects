@@ -47,6 +47,16 @@ public record ColorGradient(List<Stop> stops) {
         return stops.getLast().color();
     }
 
+    /** Validates this gradient against caller-configured stop limits. */
+    public ColorGradient validate(EffectsLimits limits) {
+        Objects.requireNonNull(limits, "limits");
+        if (stops.size() > limits.maxGradientStops()) {
+            throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
+                    "gradient stop count exceeds configured limit");
+        }
+        return this;
+    }
+
     private static float lerp(float first, float second, float alpha) {
         return first + (second - first) * alpha;
     }

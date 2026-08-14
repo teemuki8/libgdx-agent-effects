@@ -33,6 +33,14 @@ public record ParticleDefinition(String name, String anchorName, Material2dDefin
     @Override public ParticleDefinition validate(EffectsLimits limits) {
         Objects.requireNonNull(limits, "limits");
         material.validate(limits);
+        size.validate(limits);
+        color.validate(limits);
+        if (capacity > limits.maxParticles()
+                || 1 + modifiers.size() + size.stops().size() + color.stops().size()
+                        > limits.maxDefinitionNodes()) {
+            throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
+                    "particle definition exceeds configured limits");
+        }
         return this;
     }
 
