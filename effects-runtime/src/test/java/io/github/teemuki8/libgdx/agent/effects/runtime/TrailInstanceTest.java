@@ -113,7 +113,7 @@ class TrailInstanceTest {
     }
 
     private static RuntimeLimits limits(int maxTrailPoints) {
-        return new RuntimeLimits(4, 2, 4, 4, 8, maxTrailPoints, 8, 4, 16,
+        return new RuntimeLimits(4, 2, 4, 4, 8, maxTrailPoints, 8, 4, 16, 8,
                 1f / 60f);
     }
 

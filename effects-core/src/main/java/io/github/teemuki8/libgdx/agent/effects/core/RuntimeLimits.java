@@ -11,6 +11,7 @@ public record RuntimeLimits(
         int maxBeamSegments,
         int maxLightningBranches,
         int maxParticles,
+        int maxDecals,
         float fixedStepSeconds) {
 
     private static final int HARD_COUNT_CAP = 1024 * 1024;
@@ -25,6 +26,7 @@ public record RuntimeLimits(
         requireCount(maxBeamSegments, "maxBeamSegments");
         requireCount(maxLightningBranches, "maxLightningBranches");
         requireCount(maxParticles, "maxParticles");
+        requireCount(maxDecals, "maxDecals");
         if (!Float.isFinite(fixedStepSeconds) || fixedStepSeconds <= 0f
                 || fixedStepSeconds > 1f) {
             throw new IllegalArgumentException("fixedStepSeconds must be finite and within (0, 1]");
@@ -34,7 +36,7 @@ public record RuntimeLimits(
     /** Conservative defaults for application-owned 60 Hz visual simulation. */
     public static RuntimeLimits developmentDefaults() {
         return new RuntimeLimits(1024, 16, 1024, 1024, 8, 8192, 8192, 256, 65536,
-                1f / 60f);
+                4096, 1f / 60f);
     }
 
     private static void requireCount(int value, String name) {

@@ -106,7 +106,7 @@ class CpuParticleInstanceTest {
     }
 
     private static RuntimeLimits limits(int particles) {
-        return new RuntimeLimits(4, 4, 4, 4, 64, 16, 8, 4, particles, 0.25f);
+        return new RuntimeLimits(4, 4, 4, 4, 64, 16, 8, 4, particles, 8, 0.25f);
     }
 
     private static void assertKind(EffectsException.Kind kind,

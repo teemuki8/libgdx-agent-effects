@@ -112,7 +112,7 @@ class BeamAndLightningTest {
     }
 
     private static RuntimeLimits limits(int segments, int branches) {
-        return new RuntimeLimits(4, 4, 4, 4, 8, 16, segments, branches, 16,
+        return new RuntimeLimits(4, 4, 4, 4, 8, 16, segments, branches, 16, 8,
                 1f / 60f);
     }
 
