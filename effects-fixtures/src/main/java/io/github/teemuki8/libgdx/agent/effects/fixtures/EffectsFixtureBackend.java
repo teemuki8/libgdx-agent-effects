@@ -3,6 +3,7 @@ package io.github.teemuki8.libgdx.agent.effects.fixtures;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectDescription;
 import io.github.teemuki8.libgdx.agent.effects.core.AssetKey;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectDefinition;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectSnapshot;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsLimits;
 import io.github.teemuki8.libgdx.agent.effects.core.ImportLimits;
@@ -28,6 +29,8 @@ import io.github.teemuki8.libgdx.agent.effects.protocol.Results;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -55,6 +58,8 @@ public final class EffectsFixtureBackend implements EffectsBackend, EffectsImpor
             new LibgdxParticleImporter(ImportLimits.developmentDefaults());
     private final FlameParticleImporter flameParticleImporter =
             new FlameParticleImporter(ImportLimits.developmentDefaults());
+    private final Map<String, Results.SnapshotSummaryResult> snapshotSummaries =
+            new LinkedHashMap<>();
 
     public EffectsFixtureBackend(EffectsProtocolService protocol, EffectsLimits limits) {
         this.protocol = Objects.requireNonNull(protocol, "protocol");
@@ -123,6 +128,39 @@ public final class EffectsFixtureBackend implements EffectsBackend, EffectsImpor
         return CompletableFuture.completedFuture(new Results.ImportParticleResult(
                 imported.definition().name(), imported.fidelity(),
                 imported.definition().capacity(), imported.diagnostics()));
+    }
+
+    /** Registers an immutable application snapshot for the closed summary tool. */
+    public synchronized EffectsFixtureBackend registerSnapshot(EffectSnapshot snapshot) {
+        Objects.requireNonNull(snapshot, "snapshot");
+        Results.EffectSummaryResult declared = protocol.effectSummary(snapshot.definitionName());
+        if (declared == null) {
+            throw new EffectsException(EffectsException.Kind.INVALID_EFFECT,
+                    "snapshot definition is not declared");
+        }
+        int elements = Math.addExact(snapshot.anchors().size(), snapshot.events().size());
+        if (elements > limits.maxDefinitionNodes()
+                || (!snapshotSummaries.containsKey(snapshot.definitionName())
+                        && snapshotSummaries.size() >= limits.maxRuntimeInstances())) {
+            throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
+                    "snapshot summary exceeds configured limits");
+        }
+        snapshotSummaries.put(snapshot.definitionName(), new Results.SnapshotSummaryResult(
+                snapshot.definitionName(), declared.family(), snapshot.stepIndex(), elements, 0L,
+                List.of("anchors=" + snapshot.anchors().size(),
+                        "events=" + snapshot.events().size())));
+        return this;
+    }
+
+    @Override public synchronized CompletionStage<Results.SnapshotSummaryResult> snapshotSummary(
+            String effectName) {
+        Results.SnapshotSummaryResult summary = snapshotSummaries.get(effectName);
+        if (summary == null) {
+            return CompletableFuture.failedFuture(new EffectsException(
+                    EffectsException.Kind.UNSUPPORTED_FEATURE,
+                    "no immutable snapshot is registered for effect: " + effectName));
+        }
+        return CompletableFuture.completedFuture(summary);
     }
 
     private Results.CompareResult compareOnRenderThread(String referenceName, String actualName,

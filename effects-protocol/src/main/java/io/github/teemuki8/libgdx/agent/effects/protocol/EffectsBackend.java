@@ -1,6 +1,7 @@
 package io.github.teemuki8.libgdx.agent.effects.protocol;
 
 import io.github.teemuki8.libgdx.agent.effects.core.PixelComparisonSpec;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CompletableFuture;
 
@@ -31,7 +32,8 @@ public interface EffectsBackend {
 
     /** Summarizes a named live effect snapshot without exposing mutable runtime objects. */
     default CompletionStage<Results.SnapshotSummaryResult> snapshotSummary(String effectName) {
-        return CompletableFuture.failedFuture(new UnsupportedOperationException(
+        return CompletableFuture.failedFuture(new EffectsException(
+                EffectsException.Kind.UNSUPPORTED_FEATURE,
                 "snapshot summaries are not implemented by this backend"));
     }
 }

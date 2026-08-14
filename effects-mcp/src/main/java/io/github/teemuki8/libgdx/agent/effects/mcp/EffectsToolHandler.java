@@ -143,6 +143,10 @@ public final class EffectsToolHandler implements AutoCloseable {
         if (!protocol.isDeclared(name)) {
             return Mono.just(error("UNKNOWN_EFFECT", "effect is not declared: " + name));
         }
+        if (protocol.effect(name) == null) {
+            return Mono.just(error("UNSUPPORTED_FEATURE",
+                    "effect_compile currently accepts declared legacy shaders only"));
+        }
         EffectsBackend backend = protocol.backend();
         if (backend == null) {
             return Mono.just(error("NOT_AVAILABLE",
@@ -157,6 +161,10 @@ public final class EffectsToolHandler implements AutoCloseable {
         String name = string(arguments, "effectName");
         if (!protocol.isDeclared(name)) {
             return Mono.just(error("UNKNOWN_EFFECT", "effect is not declared: " + name));
+        }
+        if (protocol.effect(name) == null) {
+            return Mono.just(error("UNSUPPORTED_FEATURE",
+                    "effect_preview currently accepts declared legacy shaders only"));
         }
         EffectsBackend backend = protocol.backend();
         if (backend == null) {
@@ -176,6 +184,10 @@ public final class EffectsToolHandler implements AutoCloseable {
         }
         if (!protocol.isDeclared(actual)) {
             return Mono.just(error("UNKNOWN_EFFECT", "effect is not declared: " + actual));
+        }
+        if (protocol.effect(reference) == null || protocol.effect(actual) == null) {
+            return Mono.just(error("UNSUPPORTED_FEATURE",
+                    "effect_compare currently accepts declared legacy shaders only"));
         }
         EffectsBackend backend = protocol.backend();
         if (backend == null) {
