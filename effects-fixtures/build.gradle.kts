@@ -1,5 +1,6 @@
 dependencies {
     implementation(project(":effects-libgdx"))
+    implementation(project(":effects-import"))
     implementation(project(":effects-mcp"))
     implementation(project(":effects-protocol"))
     implementation(libs.gdx.backend.lwjgl3)

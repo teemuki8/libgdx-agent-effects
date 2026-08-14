@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Immutable catalog of the five closed v0.1 effects tools. */
+/** Immutable catalog of the six closed effects tools. */
 public final class EffectsToolCatalog {
     private static final int MAX_IDENTIFIER = 256;
 
@@ -28,15 +28,22 @@ public final class EffectsToolCatalog {
                     object(Map.of(
                             "referenceName", string(),
                             "actualName", string()),
-                            List.of("referenceName", "actualName"))));
+                            List.of("referenceName", "actualName"))),
+            tool("effect_import_godot_canvas",
+                    "Translate bounded Godot canvas shader source without persisting it",
+                    object(Map.of(
+                            "name", string(),
+                            "source", shaderSource(),
+                            "targetProfiles", targetProfiles()),
+                            List.of("name", "source", "targetProfiles"))));
     private static final Map<String, McpSchema.Tool> BY_NAME = index(TOOLS);
 
-    /** Returns the exact five v0.1 tool names. */
+    /** Returns the exact six tool names. */
     public static Set<String> toolNames() {
         return BY_NAME.keySet();
     }
 
-    /** Returns the five tools in stable catalog order. */
+    /** Returns the six tools in stable catalog order. */
     public List<McpSchema.Tool> tools() {
         return TOOLS;
     }
@@ -75,5 +82,19 @@ public final class EffectsToolCatalog {
 
     private static Map<String, Object> string() {
         return Map.of("type", "string", "minLength", 1, "maxLength", MAX_IDENTIFIER);
+    }
+
+    private static Map<String, Object> shaderSource() {
+        return Map.of("type", "string", "minLength", 1, "maxLength", 64 * 1024);
+    }
+
+    private static Map<String, Object> targetProfiles() {
+        return Map.of(
+                "type", "array",
+                "minItems", 1,
+                "maxItems", 2,
+                "uniqueItems", true,
+                "items", Map.of("type", "string", "enum",
+                        List.of("GLSL_ES_100", "GLSL_ES_300")));
     }
 }

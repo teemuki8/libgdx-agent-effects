@@ -9,6 +9,7 @@ import io.github.teemuki8.libgdx.agent.effects.core.ActiveUniform;
 import io.github.teemuki8.libgdx.agent.effects.core.DiagnosticMessage;
 import io.github.teemuki8.libgdx.agent.effects.core.DiagnosticSeverity;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderDiagnostic;
+import io.github.teemuki8.libgdx.agent.effects.core.ShaderTargetProfile;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -33,5 +34,23 @@ class EffectsJsonTest {
         String json = "{\"effectName\":\"red\",\"diagnostic\":null,\"nope\":1}";
         assertThrows(Exception.class, () ->
             mapper.readValue(json, Results.CompileResult.class));
+    }
+
+    @Test
+    void roundTripsClosedGodotImportRequestAndRejectsUnknownFields() throws Exception {
+        ObjectMapper mapper = EffectsJson.mapper();
+        Requests.ImportGodotCanvasRequest request = new Requests.ImportGodotCanvasRequest(
+                "glow", "shader_type canvas_item; void fragment(){}",
+                List.of(ShaderTargetProfile.GLSL_ES_100));
+
+        String json = mapper.writeValueAsString(request);
+        Requests.ImportGodotCanvasRequest decoded = mapper.readValue(
+                json, Requests.ImportGodotCanvasRequest.class);
+
+        assertEquals(request, decoded);
+        assertThrows(Exception.class, () -> mapper.readValue(
+                "{\"name\":\"x\",\"source\":\"s\",\"targetProfiles\":[\"GLSL_ES_100\"],"
+                        + "\"path\":\"/tmp/x\"}",
+                Requests.ImportGodotCanvasRequest.class));
     }
 }

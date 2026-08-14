@@ -126,6 +126,23 @@ class EffectsToolHandlerTest {
         }
     }
 
+    @Test
+    void importWithoutBackendIsNotAvailableAndUnknownFieldsAreRejected() {
+        EffectsProtocolService protocol = protocol(null);
+        try (EffectsToolHandler handler = new EffectsToolHandler(protocol)) {
+            Map<String, Object> valid = Map.of(
+                    "name", "glow",
+                    "source", "shader_type canvas_item; void fragment(){}",
+                    "targetProfiles", List.of("GLSL_ES_100"));
+            assertErrorCode(handler.handle(request(
+                    "effect_import_godot_canvas", valid)).block(), "NOT_AVAILABLE");
+            Map<String, Object> invalid = new java.util.LinkedHashMap<>(valid);
+            invalid.put("path", "/tmp/shader");
+            assertErrorCode(handler.handle(request(
+                    "effect_import_godot_canvas", invalid)).block(), "INVALID_QUERY");
+        }
+    }
+
     private static EffectsProtocolService protocol(EffectsBackend backend) {
         EffectDescription effect = new EffectDescription("red",
             new ShaderSource("void main(){}", "void main(){}"), List.of(), 1, 1, 0f);

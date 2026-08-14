@@ -5,9 +5,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
 import io.github.teemuki8.libgdx.agent.effects.core.PixelComparisonSpec;
+import io.github.teemuki8.libgdx.agent.effects.core.ShaderTargetProfile;
 import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsBackend;
+import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsImportBackend;
 import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsJson;
 import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsProtocolService;
+import io.github.teemuki8.libgdx.agent.effects.protocol.Requests;
 import io.github.teemuki8.libgdx.agent.effects.protocol.Results;
 import io.modelcontextprotocol.json.McpJsonDefaults;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -96,6 +99,11 @@ public final class EffectsToolHandler implements AutoCloseable {
                 string(arguments, "referenceName");
                 string(arguments, "actualName");
             }
+            case "effect_import_godot_canvas" -> {
+                string(arguments, "name");
+                string(arguments, "source");
+                targetProfiles(arguments);
+            }
             default -> {
                 // Tools without arguments have nothing further to decode.
             }
@@ -111,6 +119,7 @@ public final class EffectsToolHandler implements AutoCloseable {
             case "effect_compile" -> compile(arguments);
             case "effect_preview" -> preview(arguments);
             case "effect_compare" -> compare(arguments);
+            case "effect_import_godot_canvas" -> importGodotCanvas(arguments);
             default -> throw new IllegalArgumentException("unknown effects tool");
         };
     }
@@ -165,6 +174,20 @@ public final class EffectsToolHandler implements AutoCloseable {
                 .flatMap(this::resultAsync);
     }
 
+    private Mono<McpSchema.CallToolResult> importGodotCanvas(Map<String, Object> arguments) {
+        EffectsImportBackend backend = protocol.importBackend();
+        if (backend == null) {
+            return Mono.just(error("NOT_AVAILABLE",
+                    "effect_import_godot_canvas needs an import backend"));
+        }
+        Requests.ImportGodotCanvasRequest request = new Requests.ImportGodotCanvasRequest(
+                string(arguments, "name"), string(arguments, "source"),
+                targetProfiles(arguments));
+        return Mono.fromCompletionStage(backend.importGodotCanvas(request))
+                .publishOn(scheduler)
+                .flatMap(this::resultAsync);
+    }
+
     private Mono<McpSchema.CallToolResult> resultAsync(Object value) {
         return Mono.fromCallable(() -> result(value));
     }
@@ -210,6 +233,14 @@ public final class EffectsToolHandler implements AutoCloseable {
     private static String string(Map<String, Object> values, String key) {
         Object value = values.get(key);
         return value == null ? null : (String) value;
+    }
+
+    private static List<ShaderTargetProfile> targetProfiles(Map<String, Object> values) {
+        Object value = values.get("targetProfiles");
+        if (!(value instanceof List<?> items)) {
+            throw new IllegalArgumentException("targetProfiles must be an array");
+        }
+        return items.stream().map(item -> ShaderTargetProfile.valueOf((String) item)).toList();
     }
 
     /** Stops owned request dispatch. */

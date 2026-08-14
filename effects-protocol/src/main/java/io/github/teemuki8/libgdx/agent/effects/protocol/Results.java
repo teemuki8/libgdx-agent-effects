@@ -2,6 +2,7 @@ package io.github.teemuki8.libgdx.agent.effects.protocol;
 
 import io.github.teemuki8.libgdx.agent.effects.core.PixelComparisonResult;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderDiagnostic;
+import io.github.teemuki8.libgdx.agent.effects.core.ShaderImportResult;
 import java.util.List;
 import java.util.Objects;
 
@@ -39,6 +40,12 @@ public final class Results {
     public record CapabilitiesResult(List<String> tools) {
         public CapabilitiesResult {
             tools = List.copyOf(tools);
+        }
+    }
+
+    public record ImportShaderResult(ShaderImportResult result) {
+        public ImportShaderResult {
+            Objects.requireNonNull(result, "result");
         }
     }
 }

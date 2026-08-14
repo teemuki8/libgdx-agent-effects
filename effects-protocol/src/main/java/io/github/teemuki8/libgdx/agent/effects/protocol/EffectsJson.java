@@ -21,7 +21,7 @@ public final class EffectsJson {
             .streamReadConstraints(
                 StreamReadConstraints.builder()
                 .maxNestingDepth(32)
-                .maxStringLength(16_384)
+                .maxStringLength(EffectsProtocol.MAX_SHADER_IMPORT_SOURCE_CHARS)
                 .maxNumberLength(128)
                 .build())
             .build();

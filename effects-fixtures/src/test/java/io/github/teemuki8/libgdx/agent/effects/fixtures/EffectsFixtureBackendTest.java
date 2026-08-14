@@ -81,6 +81,31 @@ class EffectsFixtureBackendTest {
     }
 
     @Test
+    void mcpImportsGodotCanvasSourceThroughTheSeparatelyWiredBackend() throws Exception {
+        GdxFixtureHost.run(() -> {
+            EffectsProtocolService service = new EffectsProtocolService();
+            try (EffectsFixtureBackend backend =
+                    new EffectsFixtureBackend(service, EffectsLimits.developmentDefaults());
+                    EffectsToolHandler handler = new EffectsToolHandler(service)) {
+                service.importBackend(backend);
+                McpSchema.CallToolRequest request = new McpSchema.CallToolRequest(
+                        "effect_import_godot_canvas", Map.of(
+                                "name", "glow",
+                                "source", "shader_type canvas_item; void fragment(){"
+                                        + "COLOR=vec4(1.0);}",
+                                "targetProfiles", List.of("GLSL_ES_100")), null);
+
+                McpSchema.CallToolResult result = handler.handle(request).block();
+
+                assertFalse(result.isError(), result.content().toString());
+                assertEquals("STRUCTURALLY_EQUIVALENT",
+                        ((Map<?, ?>) result.structuredContent()).get("result") instanceof Map<?, ?> map
+                                ? map.get("fidelity") : null);
+            }
+        });
+    }
+
+    @Test
     void closedBackendRejectsNewRenderWork() throws Exception {
         GdxFixtureHost.run(() -> {
             EffectsProtocolService service = new EffectsProtocolService().declare(redEffect());
