@@ -46,12 +46,23 @@ jobs:
       RELEASE_TAG: ${{ inputs.release_tag }}
       DEPLOYMENT_ID: ${{ inputs.deployment_id }}
     steps:
+      - name: Check out release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.release_tag }}
+          fetch-depth: 0
+          fetch-tags: true
       - name: Validate request
         shell: bash
         run: |
           set -euo pipefail
           if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
             echo "::error::release_tag must be a version tag such as v0.1.0."
+            exit 1
+          fi
+          if ! git show-ref --verify --quiet "refs/tags/$RELEASE_TAG" \
+            || [[ "$(git rev-list -n 1 "$RELEASE_TAG")" != "$(git rev-parse HEAD)" ]]; then
+            echo "::error::$RELEASE_TAG must be an exact tag for the checked-out release commit."
             exit 1
           fi
           for variable_name in \
@@ -80,6 +91,7 @@ jobs:
           )"
           echo "::add-mask::$authorization"
           version="${RELEASE_TAG#v}"
+          release_commit="$(git rev-parse HEAD)"
           central_api="https://central.sonatype.com/api/v1/publisher"
 
           status_for() {
@@ -126,6 +138,10 @@ jobs:
               "$work_directory/core.pom" \
               || result=1
             grep --quiet '<url>https://github.com/teemuki8</url>' "$work_directory/core.pom" \
+              || result=1
+            grep --quiet "<tag>$RELEASE_TAG</tag>" "$work_directory/core.pom" || result=1
+            grep --quiet "<release.commit>$release_commit</release.commit>" \
+              "$work_directory/core.pom" \
               || result=1
             rm -rf "$work_directory"
             return "$result"
@@ -178,9 +194,11 @@ jobs:
             expected_purls="$(
               printf '%s\n' \
                 "pkg:maven/io.github.teemuki8/agent-effects-core@$version" \
+                "pkg:maven/io.github.teemuki8/agent-effects-import@$version" \
                 "pkg:maven/io.github.teemuki8/agent-effects-libgdx@$version" \
                 "pkg:maven/io.github.teemuki8/agent-effects-mcp@$version" \
                 "pkg:maven/io.github.teemuki8/agent-effects-protocol@$version" \
+                "pkg:maven/io.github.teemuki8/agent-effects-runtime@$version" \
                 | sort
             )"
             actual_purls="$(jq -r '.purls[]' <<<"$status" | sort)"

@@ -28,7 +28,7 @@ None of them is a dependency of this library. It is built directly on libGDX pri
 (`ShaderProgram`, `FrameBuffer`, `ScreenUtils`) with its own bounded JSON protocol and closed
 stdio MCP surface.
 
-## Shipped v0.1
+## Shipped v0.2
 
 - Declarative effect model (shader source, closed uniform union, bounded effect description) in
   JDK-only `effects-core`.
@@ -58,7 +58,7 @@ stdio MCP surface.
 | `effects-mcp` | closed stdio MCP tool catalog | `agent-effects-mcp` |
 | `effects-fixtures` | deterministic LWJGL3 qualification | not published |
 
-Group: `io.github.teemuki8`. Development version: `0.1.0-SNAPSHOT`.
+Group: `io.github.teemuki8`. Development version: `0.2.0-SNAPSHOT`.
 
 ## Build
 

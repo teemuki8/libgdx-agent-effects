@@ -29,7 +29,8 @@ val artifactNames = mapOf(
     "effects-libgdx" to "agent-effects-libgdx",
     "effects-mcp" to "agent-effects-mcp",
 )
-val releaseVersion = providers.gradleProperty("releaseVersion").orElse("0.1.0-SNAPSHOT")
+val releaseVersion = providers.gradleProperty("releaseVersion").orElse("0.2.0-SNAPSHOT")
+val releaseCommit = providers.gradleProperty("releaseCommit").orElse("development")
 val repositoryUrl = "https://github.com/teemuki8/libgdx-agent-effects"
 val mavenCentralStagingUrl =
     "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
@@ -160,8 +161,10 @@ subprojects {
                         developerConnection.set(
                             "scm:git:ssh://git@github.com/teemuki8/libgdx-agent-effects.git",
                         )
+                        tag.set("v${project.version}")
                         url.set(repositoryUrl)
                     }
+                    properties.put("release.commit", releaseCommit)
                 }
             }
             repositories {

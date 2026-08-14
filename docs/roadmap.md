@@ -17,7 +17,7 @@ The first publishable increment. Deliverables, in dependency order:
 Each increment lands with its ADR, a vertical slice through Java API, protocol, MCP, and the fixture,
 and pixel-comparison evidence where applicable.
 
-## General-VFX program — implemented
+## v0.2.0 — General-VFX program
 
 The completed implementation sequence after the importer is an explicit JDK-only runtime lifecycle,
 sprite/mesh materials, trails and ribbons, beams and lightning, deterministic CPU particles, GL3
