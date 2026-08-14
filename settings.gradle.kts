@@ -18,6 +18,7 @@ dependencyResolutionManagement {
 
 include(
     "effects-core",
+    "effects-library",
     "effects-import",
     "effects-runtime",
     "effects-protocol",
