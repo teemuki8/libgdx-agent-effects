@@ -3,7 +3,9 @@ package io.github.teemuki8.libgdx.agent.effects.protocol;
 import io.github.teemuki8.libgdx.agent.effects.core.PixelComparisonSpec;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderTargetProfile;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /** Closed request records. */
@@ -20,6 +22,18 @@ public final class Requests {
     public record PreviewRequest(String effectName) {
         public PreviewRequest {
             Objects.requireNonNull(effectName, "effectName");
+        }
+    }
+
+    public record DescribeEffectRequest(String effectName) {
+        public DescribeEffectRequest {
+            requireIdentifier(effectName, "effectName");
+        }
+    }
+
+    public record SnapshotSummaryRequest(String effectName) {
+        public SnapshotSummaryRequest {
+            requireIdentifier(effectName, "effectName");
         }
     }
 
@@ -45,6 +59,40 @@ public final class Requests {
                     || new HashSet<>(targetProfiles).size() != targetProfiles.size()) {
                 throw new IllegalArgumentException("invalid bounded Godot import request");
             }
+        }
+    }
+
+    public record ImportParticleRequest(String schemaVersion, ParticleSourceFormat format,
+            String name, String source, String anchorName, String materialName,
+            Map<String, String> assetMappings) {
+        public ImportParticleRequest {
+            Objects.requireNonNull(schemaVersion, "schemaVersion");
+            Objects.requireNonNull(format, "format");
+            requireIdentifier(name, "name");
+            requireIdentifier(anchorName, "anchorName");
+            requireIdentifier(materialName, "materialName");
+            Objects.requireNonNull(source, "source");
+            Objects.requireNonNull(assetMappings, "assetMappings");
+            assetMappings = java.util.Collections.unmodifiableMap(
+                    new LinkedHashMap<>(assetMappings));
+            if (!EffectsProtocol.SCHEMA_VERSION.equals(schemaVersion)
+                    || source.isBlank()
+                    || source.length() > EffectsProtocol.MAX_SHADER_IMPORT_SOURCE_CHARS
+                    || assetMappings.size() > 256) {
+                throw new IllegalArgumentException("invalid bounded particle import request");
+            }
+            assetMappings.forEach((sourceName, registeredName) -> {
+                requireIdentifier(sourceName, "asset source name");
+                requireIdentifier(registeredName, "registered asset name");
+            });
+        }
+    }
+
+    private static void requireIdentifier(String value, String name) {
+        Objects.requireNonNull(value, name);
+        if (value.isBlank() || value.length() > EffectsProtocol.MAX_IDENTIFIER_CHARS
+                || value.startsWith("/") || value.contains("..") || value.indexOf('\\') >= 0) {
+            throw new IllegalArgumentException("invalid " + name);
         }
     }
 }

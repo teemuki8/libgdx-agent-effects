@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Immutable catalog of the six closed effects tools. */
+/** Immutable catalog of the closed effects tools. */
 public final class EffectsToolCatalog {
     private static final int MAX_IDENTIFIER = 256;
 
@@ -29,21 +29,39 @@ public final class EffectsToolCatalog {
                             "referenceName", string(),
                             "actualName", string()),
                             List.of("referenceName", "actualName"))),
+            tool("effect_describe",
+                    "Describe one application-declared general effect by name",
+                    object(Map.of("effectName", string()), List.of("effectName"))),
+            tool("effect_snapshot_summary",
+                    "Summarize one declared live effect snapshot by name",
+                    object(Map.of("effectName", string()), List.of("effectName"))),
             tool("effect_import_godot_canvas",
                     "Translate bounded Godot canvas shader source without persisting it",
                     object(Map.of(
                             "name", string(),
                             "source", shaderSource(),
                             "targetProfiles", targetProfiles()),
-                            List.of("name", "source", "targetProfiles"))));
+                            List.of("name", "source", "targetProfiles"))),
+            tool("effect_import_particle",
+                    "Translate bounded libGDX or Flame particle source without persisting it",
+                    object(Map.of(
+                            "schemaVersion", schemaVersion(),
+                            "format", particleFormat(),
+                            "name", string(),
+                            "source", shaderSource(),
+                            "anchorName", string(),
+                            "materialName", string(),
+                            "assetMappings", assetMappings()),
+                            List.of("schemaVersion", "format", "name", "source",
+                                    "anchorName", "materialName", "assetMappings"))));
     private static final Map<String, McpSchema.Tool> BY_NAME = index(TOOLS);
 
-    /** Returns the exact six tool names. */
+    /** Returns the exact closed tool names. */
     public static Set<String> toolNames() {
         return BY_NAME.keySet();
     }
 
-    /** Returns the six tools in stable catalog order. */
+    /** Returns the tools in stable catalog order. */
     public List<McpSchema.Tool> tools() {
         return TOOLS;
     }
@@ -96,5 +114,20 @@ public final class EffectsToolCatalog {
                 "uniqueItems", true,
                 "items", Map.of("type", "string", "enum",
                         List.of("GLSL_ES_100", "GLSL_ES_300")));
+    }
+
+    private static Map<String, Object> schemaVersion() {
+        return Map.of("type", "string", "enum", List.of("1"));
+    }
+
+    private static Map<String, Object> particleFormat() {
+        return Map.of("type", "string", "enum", List.of("LIBGDX_2D", "FLAME"));
+    }
+
+    private static Map<String, Object> assetMappings() {
+        return Map.of(
+                "type", "object",
+                "maxProperties", 256,
+                "additionalProperties", string());
     }
 }

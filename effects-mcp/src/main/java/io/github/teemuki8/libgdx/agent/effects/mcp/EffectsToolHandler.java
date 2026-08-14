@@ -12,6 +12,7 @@ import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsJson;
 import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsProtocolService;
 import io.github.teemuki8.libgdx.agent.effects.protocol.Requests;
 import io.github.teemuki8.libgdx.agent.effects.protocol.Results;
+import io.github.teemuki8.libgdx.agent.effects.protocol.ParticleSourceFormat;
 import io.modelcontextprotocol.json.McpJsonDefaults;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.LinkedHashMap;
@@ -94,7 +95,8 @@ public final class EffectsToolHandler implements AutoCloseable {
     private static void validateDecodedArguments(
             String toolName, Map<String, Object> arguments) {
         switch (toolName) {
-            case "effect_compile", "effect_preview" -> string(arguments, "effectName");
+            case "effect_compile", "effect_preview", "effect_describe",
+                    "effect_snapshot_summary" -> string(arguments, "effectName");
             case "effect_compare" -> {
                 string(arguments, "referenceName");
                 string(arguments, "actualName");
@@ -103,6 +105,15 @@ public final class EffectsToolHandler implements AutoCloseable {
                 string(arguments, "name");
                 string(arguments, "source");
                 targetProfiles(arguments);
+            }
+            case "effect_import_particle" -> {
+                string(arguments, "schemaVersion");
+                ParticleSourceFormat.valueOf(string(arguments, "format"));
+                string(arguments, "name");
+                string(arguments, "source");
+                string(arguments, "anchorName");
+                string(arguments, "materialName");
+                assetMappings(arguments);
             }
             default -> {
                 // Tools without arguments have nothing further to decode.
@@ -119,14 +130,17 @@ public final class EffectsToolHandler implements AutoCloseable {
             case "effect_compile" -> compile(arguments);
             case "effect_preview" -> preview(arguments);
             case "effect_compare" -> compare(arguments);
+            case "effect_describe" -> describe(arguments);
+            case "effect_snapshot_summary" -> snapshotSummary(arguments);
             case "effect_import_godot_canvas" -> importGodotCanvas(arguments);
+            case "effect_import_particle" -> importParticle(arguments);
             default -> throw new IllegalArgumentException("unknown effects tool");
         };
     }
 
     private Mono<McpSchema.CallToolResult> compile(Map<String, Object> arguments) {
         String name = string(arguments, "effectName");
-        if (protocol.effect(name) == null) {
+        if (!protocol.isDeclared(name)) {
             return Mono.just(error("UNKNOWN_EFFECT", "effect is not declared: " + name));
         }
         EffectsBackend backend = protocol.backend();
@@ -141,7 +155,7 @@ public final class EffectsToolHandler implements AutoCloseable {
 
     private Mono<McpSchema.CallToolResult> preview(Map<String, Object> arguments) {
         String name = string(arguments, "effectName");
-        if (protocol.effect(name) == null) {
+        if (!protocol.isDeclared(name)) {
             return Mono.just(error("UNKNOWN_EFFECT", "effect is not declared: " + name));
         }
         EffectsBackend backend = protocol.backend();
@@ -157,10 +171,10 @@ public final class EffectsToolHandler implements AutoCloseable {
     private Mono<McpSchema.CallToolResult> compare(Map<String, Object> arguments) {
         String reference = string(arguments, "referenceName");
         String actual = string(arguments, "actualName");
-        if (protocol.effect(reference) == null) {
+        if (!protocol.isDeclared(reference)) {
             return Mono.just(error("UNKNOWN_EFFECT", "effect is not declared: " + reference));
         }
-        if (protocol.effect(actual) == null) {
+        if (!protocol.isDeclared(actual)) {
             return Mono.just(error("UNKNOWN_EFFECT", "effect is not declared: " + actual));
         }
         EffectsBackend backend = protocol.backend();
@@ -184,6 +198,47 @@ public final class EffectsToolHandler implements AutoCloseable {
                 string(arguments, "name"), string(arguments, "source"),
                 targetProfiles(arguments));
         return Mono.fromCompletionStage(backend.importGodotCanvas(request))
+                .publishOn(scheduler)
+                .flatMap(this::resultAsync);
+    }
+
+    private Mono<McpSchema.CallToolResult> describe(Map<String, Object> arguments) {
+        String name = string(arguments, "effectName");
+        Results.EffectSummaryResult summary = protocol.effectSummary(name);
+        if (summary == null) {
+            return Mono.just(error("UNKNOWN_EFFECT", "effect is not declared: " + name));
+        }
+        return resultAsync(summary);
+    }
+
+    private Mono<McpSchema.CallToolResult> snapshotSummary(Map<String, Object> arguments) {
+        String name = string(arguments, "effectName");
+        if (!protocol.isDeclared(name)) {
+            return Mono.just(error("UNKNOWN_EFFECT", "effect is not declared: " + name));
+        }
+        EffectsBackend backend = protocol.backend();
+        if (backend == null) {
+            return Mono.just(error("NOT_AVAILABLE",
+                    "effect_snapshot_summary needs an application runtime backend"));
+        }
+        return Mono.fromCompletionStage(backend.snapshotSummary(name))
+                .publishOn(scheduler)
+                .flatMap(this::resultAsync);
+    }
+
+    private Mono<McpSchema.CallToolResult> importParticle(Map<String, Object> arguments) {
+        EffectsImportBackend backend = protocol.importBackend();
+        if (backend == null) {
+            return Mono.just(error("NOT_AVAILABLE",
+                    "effect_import_particle needs an import backend"));
+        }
+        Requests.ImportParticleRequest request = new Requests.ImportParticleRequest(
+                string(arguments, "schemaVersion"),
+                ParticleSourceFormat.valueOf(string(arguments, "format")),
+                string(arguments, "name"), string(arguments, "source"),
+                string(arguments, "anchorName"), string(arguments, "materialName"),
+                assetMappings(arguments));
+        return Mono.fromCompletionStage(backend.importParticle(request))
                 .publishOn(scheduler)
                 .flatMap(this::resultAsync);
     }
@@ -241,6 +296,16 @@ public final class EffectsToolHandler implements AutoCloseable {
             throw new IllegalArgumentException("targetProfiles must be an array");
         }
         return items.stream().map(item -> ShaderTargetProfile.valueOf((String) item)).toList();
+    }
+
+    private static Map<String, String> assetMappings(Map<String, Object> values) {
+        Object value = values.get("assetMappings");
+        if (!(value instanceof Map<?, ?> items)) {
+            throw new IllegalArgumentException("assetMappings must be an object");
+        }
+        LinkedHashMap<String, String> result = new LinkedHashMap<>();
+        items.forEach((key, item) -> result.put((String) key, (String) item));
+        return Map.copyOf(result);
     }
 
     /** Stops owned request dispatch. */

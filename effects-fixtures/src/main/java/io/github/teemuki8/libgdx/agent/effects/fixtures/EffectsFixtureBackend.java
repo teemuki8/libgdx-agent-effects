@@ -1,8 +1,13 @@
 package io.github.teemuki8.libgdx.agent.effects.fixtures;
 
 import io.github.teemuki8.libgdx.agent.effects.core.EffectDescription;
+import io.github.teemuki8.libgdx.agent.effects.core.AssetKey;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectDefinition;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsLimits;
 import io.github.teemuki8.libgdx.agent.effects.core.ImportLimits;
+import io.github.teemuki8.libgdx.agent.effects.core.Material2dDefinition;
+import io.github.teemuki8.libgdx.agent.effects.core.ParticleImportResult;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderImportRequest;
 import io.github.teemuki8.libgdx.agent.effects.core.PixelComparer;
 import io.github.teemuki8.libgdx.agent.effects.core.PixelComparisonResult;
@@ -13,6 +18,8 @@ import io.github.teemuki8.libgdx.agent.effects.libgdx.EffectCompiler;
 import io.github.teemuki8.libgdx.agent.effects.libgdx.PreviewPngWriter;
 import io.github.teemuki8.libgdx.agent.effects.libgdx.PreviewRenderer;
 import io.github.teemuki8.libgdx.agent.effects.importer.godot.GodotCanvasImporter;
+import io.github.teemuki8.libgdx.agent.effects.importer.libgdx.FlameParticleImporter;
+import io.github.teemuki8.libgdx.agent.effects.importer.libgdx.LibgdxParticleImporter;
 import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsBackend;
 import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsImportBackend;
 import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsProtocolService;
@@ -21,6 +28,7 @@ import io.github.teemuki8.libgdx.agent.effects.protocol.Results;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -43,6 +51,10 @@ public final class EffectsFixtureBackend implements EffectsBackend, EffectsImpor
     private final PreviewPngWriter pngWriter = new PreviewPngWriter();
     private final GodotCanvasImporter importer =
             new GodotCanvasImporter(ImportLimits.developmentDefaults());
+    private final LibgdxParticleImporter libgdxParticleImporter =
+            new LibgdxParticleImporter(ImportLimits.developmentDefaults());
+    private final FlameParticleImporter flameParticleImporter =
+            new FlameParticleImporter(ImportLimits.developmentDefaults());
 
     public EffectsFixtureBackend(EffectsProtocolService protocol, EffectsLimits limits) {
         this.protocol = Objects.requireNonNull(protocol, "protocol");
@@ -89,6 +101,28 @@ public final class EffectsFixtureBackend implements EffectsBackend, EffectsImpor
                 request.name(), request.source(), request.targetProfiles());
         return CompletableFuture.completedFuture(
                 new Results.ImportShaderResult(importer.importShader(coreRequest)));
+    }
+
+    @Override public CompletionStage<Results.ImportParticleResult> importParticle(
+            Requests.ImportParticleRequest request) {
+        EffectDefinition declared = protocol.definition(request.materialName());
+        if (!(declared instanceof Material2dDefinition material)) {
+            return CompletableFuture.failedFuture(new EffectsException(
+                    EffectsException.Kind.INVALID_IMPORT,
+                    "particle material is not an application-declared 2D material"));
+        }
+        Map<String, AssetKey> mappings = request.assetMappings().entrySet().stream()
+                .collect(java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey,
+                        entry -> new AssetKey(entry.getValue())));
+        ParticleImportResult imported = switch (request.format()) {
+            case LIBGDX_2D -> libgdxParticleImporter.importParticle(request.source(),
+                    request.name(), request.anchorName(), material, mappings);
+            case FLAME -> flameParticleImporter.importParticle(request.source(),
+                    request.anchorName(), material, mappings);
+        };
+        return CompletableFuture.completedFuture(new Results.ImportParticleResult(
+                imported.definition().name(), imported.fidelity(),
+                imported.definition().capacity(), imported.diagnostics()));
     }
 
     private Results.CompareResult compareOnRenderThread(String referenceName, String actualName,

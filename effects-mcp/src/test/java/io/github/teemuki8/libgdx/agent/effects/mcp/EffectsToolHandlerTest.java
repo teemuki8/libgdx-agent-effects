@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.teemuki8.libgdx.agent.effects.core.EffectDescription;
+import io.github.teemuki8.libgdx.agent.effects.core.BlendMode;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
 import io.github.teemuki8.libgdx.agent.effects.core.PixelComparisonSpec;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderDiagnostic;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderSource;
+import io.github.teemuki8.libgdx.agent.effects.core.Material2dDefinition;
 import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsBackend;
 import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsProtocolService;
 import io.github.teemuki8.libgdx.agent.effects.protocol.Results;
@@ -140,6 +142,24 @@ class EffectsToolHandlerTest {
             invalid.put("path", "/tmp/shader");
             assertErrorCode(handler.handle(request(
                     "effect_import_godot_canvas", invalid)).block(), "INVALID_QUERY");
+        }
+    }
+
+    @Test
+    void describesApplicationDeclaredGeneralEffectWithoutExposingExecutableObjects() {
+        Material2dDefinition material = new Material2dDefinition("ship-material",
+                new ShaderSource("void main(){}", "void main(){}"), BlendMode.ADDITIVE,
+                List.of(), List.of());
+        EffectsProtocolService protocol = new EffectsProtocolService()
+                .declareDefinition(material);
+        try (EffectsToolHandler handler = new EffectsToolHandler(protocol)) {
+            McpSchema.CallToolResult result = handler.handle(request(
+                    "effect_describe", Map.of("effectName", "ship-material"))).block();
+            assertTrue(!result.isError());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> structured = (Map<String, Object>) result.structuredContent();
+            org.junit.jupiter.api.Assertions.assertEquals("MATERIAL_2D",
+                    structured.get("family"));
         }
     }
 
