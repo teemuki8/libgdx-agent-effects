@@ -31,9 +31,6 @@
 - Create: `effects-import/build.gradle.kts`
 - Create: `effects-import/gradle.lockfile`
 - Create: `effects-import/src/main/java/io/github/teemuki8/libgdx/agent/effects/importer/package-info.java`
-- Create: `effects-runtime/build.gradle.kts`
-- Create: `effects-runtime/gradle.lockfile`
-- Create: `effects-runtime/src/main/java/io/github/teemuki8/libgdx/agent/effects/runtime/package-info.java`
 - Create: `effects-core/src/main/java/io/github/teemuki8/libgdx/agent/effects/core/EffectDefinition.java`
 - Create: `effects-core/src/main/java/io/github/teemuki8/libgdx/agent/effects/core/AssetKey.java`
 - Create: `effects-core/src/main/java/io/github/teemuki8/libgdx/agent/effects/core/BlendMode.java`
@@ -48,6 +45,7 @@
 - Create: `effects-core/src/main/java/io/github/teemuki8/libgdx/agent/effects/core/FeatureMapping.java`
 - Create: `effects-core/src/main/java/io/github/teemuki8/libgdx/agent/effects/core/FidelityClassification.java`
 - Create: `effects-core/src/main/java/io/github/teemuki8/libgdx/agent/effects/core/GeneratedShader.java`
+- Create: `effects-core/src/main/java/io/github/teemuki8/libgdx/agent/effects/core/SourceMapping.java`
 - Create: `effects-core/src/main/java/io/github/teemuki8/libgdx/agent/effects/core/ShaderImportRequest.java`
 - Create: `effects-core/src/main/java/io/github/teemuki8/libgdx/agent/effects/core/ShaderImportResult.java`
 - Create: `effects-core/src/test/java/io/github/teemuki8/libgdx/agent/effects/core/ShaderImportModelTest.java`
@@ -106,7 +104,7 @@ kind names.
 
 - [ ] **Step 4: Add modules and dependency metadata**
 
-`effects-import` and `effects-runtime` each declare only:
+`effects-import` declares only:
 
 ```kotlin
 dependencies {
@@ -114,8 +112,9 @@ dependencies {
 }
 ```
 
-Add both modules to `settings.gradle.kts`, `publishedModules`, and `artifactNames`. Generate locks
-without changing unrelated dependency versions.
+Add `effects-import` to `settings.gradle.kts`, `publishedModules`, and `artifactNames`. Runtime
+module creation remains in the master plan's runtime-lifecycle task. Generate locks without
+changing unrelated dependency versions.
 
 - [ ] **Step 5: Write ADR 0003 and package Javadocs**
 
@@ -133,7 +132,7 @@ Expected: both PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add settings.gradle.kts build.gradle.kts docs/adr/0003-general-vfx-runtime-and-import-boundary.md effects-core effects-import effects-runtime
+git add settings.gradle.kts build.gradle.kts docs/adr/0003-general-vfx-runtime-and-import-boundary.md effects-core effects-import
 git commit -m "Add bounded shader import contracts"
 ```
 

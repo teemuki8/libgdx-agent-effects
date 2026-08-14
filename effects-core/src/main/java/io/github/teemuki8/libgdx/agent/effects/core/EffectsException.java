@@ -5,7 +5,15 @@ public final class EffectsException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 
-    public enum Kind { INVALID_EFFECT, COMPILE_FAILED, DIMENSION_MISMATCH, LIMIT_EXCEEDED, WRONG_THREAD }
+    public enum Kind {
+        INVALID_EFFECT,
+        INVALID_IMPORT,
+        UNSUPPORTED_FEATURE,
+        COMPILE_FAILED,
+        DIMENSION_MISMATCH,
+        LIMIT_EXCEEDED,
+        WRONG_THREAD
+    }
 
     private final Kind kind;
 

@@ -28,9 +28,6 @@
 
 **Files:**
 - Create: `docs/adr/0003-general-vfx-runtime-and-import-boundary.md`
-- Create: `effects-runtime/build.gradle.kts`
-- Create: `effects-runtime/gradle.lockfile`
-- Create: `effects-runtime/src/main/java/io/github/teemuki8/libgdx/agent/effects/runtime/package-info.java`
 - Create: `effects-import/build.gradle.kts`
 - Create: `effects-import/gradle.lockfile`
 - Create: `effects-import/src/main/java/io/github/teemuki8/libgdx/agent/effects/importer/package-info.java`
@@ -41,19 +38,19 @@
 
 **Interfaces:**
 - Consumes: the dependency and ownership rules in `docs/adr/0001-render-thread-hand-rolled-passes.md` and `docs/adr/0002-bounded-declarative-effect-model.md`.
-- Produces: published `agent-effects-runtime` and `agent-effects-import` modules that each depend only on `effects-core`.
+- Produces: published `agent-effects-import` depending only on `effects-core`; runtime module
+  creation and publication begin with its public lifecycle in Task 4.
 
 - [ ] **Step 1: Write dependency-boundary checks**
 
 Add a root verification task that inspects resolved project dependencies and asserts that
-`effects-core`, `effects-runtime`, and `effects-import` do not depend on libGDX, Jackson, MCP, or
-each other in a cycle.
+`effects-core` and `effects-import` do not depend on libGDX, Jackson, MCP, or each other in a cycle.
 
 - [ ] **Step 2: Run the boundary check and observe missing modules**
 
 Run: `./gradlew verifyModuleBoundaries`
 
-Expected: FAIL because `effects-runtime` and `effects-import` are not included yet.
+Expected: FAIL because `effects-import` is not included yet.
 
 - [ ] **Step 3: Add modules, publication metadata, locks, package docs, and ADR**
 
@@ -69,7 +66,7 @@ Expected: PASS with warning-free Javadocs for both new empty published modules.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add settings.gradle.kts build.gradle.kts README.md docs/roadmap.md docs/adr/0003-general-vfx-runtime-and-import-boundary.md effects-runtime effects-import
+git add settings.gradle.kts build.gradle.kts README.md docs/roadmap.md docs/adr/0003-general-vfx-runtime-and-import-boundary.md effects-import
 git commit -m "Establish general VFX module boundaries"
 ```
 
@@ -164,6 +161,9 @@ Expected: PASS under Xvfb, including generated-shader compilation and stored ref
 ### Task 4: Add the explicit runtime instance and snapshot lifecycle
 
 **Files:**
+- Create: `effects-runtime/build.gradle.kts`
+- Create: `effects-runtime/gradle.lockfile`
+- Create: `effects-runtime/src/main/java/io/github/teemuki8/libgdx/agent/effects/runtime/package-info.java`
 - Create: `effects-core/src/main/java/io/github/teemuki8/libgdx/agent/effects/core/EffectSnapshot.java`
 - Create: `effects-runtime/src/main/java/io/github/teemuki8/libgdx/agent/effects/runtime/EffectInstance.java`
 - Create: `effects-runtime/src/main/java/io/github/teemuki8/libgdx/agent/effects/runtime/EffectEvent.java`

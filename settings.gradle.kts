@@ -18,6 +18,7 @@ dependencyResolutionManagement {
 
 include(
     "effects-core",
+    "effects-import",
     "effects-protocol",
     "effects-libgdx",
     "effects-mcp",

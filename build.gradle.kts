@@ -14,12 +14,14 @@ import java.util.zip.ZipFile
 
 val publishedModules = setOf(
     "effects-core",
+    "effects-import",
     "effects-protocol",
     "effects-libgdx",
     "effects-mcp",
 )
 val artifactNames = mapOf(
     "effects-core" to "agent-effects-core",
+    "effects-import" to "agent-effects-import",
     "effects-protocol" to "agent-effects-protocol",
     "effects-libgdx" to "agent-effects-libgdx",
     "effects-mcp" to "agent-effects-mcp",
