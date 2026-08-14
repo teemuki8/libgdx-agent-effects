@@ -8,6 +8,8 @@ public record RuntimeLimits(
         int maxEventsPerSnapshot,
         int maxCatchUpSteps,
         int maxTrailPoints,
+        int maxBeamSegments,
+        int maxLightningBranches,
         float fixedStepSeconds) {
 
     private static final int HARD_COUNT_CAP = 1024 * 1024;
@@ -19,6 +21,8 @@ public record RuntimeLimits(
         requireCount(maxEventsPerSnapshot, "maxEventsPerSnapshot");
         requireCount(maxCatchUpSteps, "maxCatchUpSteps");
         requireCount(maxTrailPoints, "maxTrailPoints");
+        requireCount(maxBeamSegments, "maxBeamSegments");
+        requireCount(maxLightningBranches, "maxLightningBranches");
         if (!Float.isFinite(fixedStepSeconds) || fixedStepSeconds <= 0f
                 || fixedStepSeconds > 1f) {
             throw new IllegalArgumentException("fixedStepSeconds must be finite and within (0, 1]");
@@ -27,7 +31,8 @@ public record RuntimeLimits(
 
     /** Conservative defaults for application-owned 60 Hz visual simulation. */
     public static RuntimeLimits developmentDefaults() {
-        return new RuntimeLimits(1024, 16, 1024, 1024, 8, 8192, 1f / 60f);
+        return new RuntimeLimits(1024, 16, 1024, 1024, 8, 8192, 8192, 256,
+                1f / 60f);
     }
 
     private static void requireCount(int value, String name) {

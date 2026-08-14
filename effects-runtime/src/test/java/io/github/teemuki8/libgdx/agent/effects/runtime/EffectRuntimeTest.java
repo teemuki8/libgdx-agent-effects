@@ -93,7 +93,7 @@ class EffectRuntimeTest {
     }
 
     private static RuntimeLimits limits() {
-        return new RuntimeLimits(2, 2, 2, 2, 4, 16, 1f / 60f);
+        return new RuntimeLimits(2, 2, 2, 2, 4, 16, 16, 4, 1f / 60f);
     }
 
     private static Material2dDefinition material() {
