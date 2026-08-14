@@ -50,6 +50,7 @@ decals, distortion, post-processing, and GPU-particle fallback paths. See `docs/
 | --- | --- | --- |
 | `effects-core` | JDK-only effect/pass-graph schema, diagnostics, bounds | `agent-effects-core` |
 | `effects-import` | JDK-only bounded engine shader importers | `agent-effects-import` |
+| `effects-runtime` | JDK-only explicitly stepped bounded visual state | `agent-effects-runtime` |
 | `effects-protocol` | strict bounded JSON commands, results, and errors | `agent-effects-protocol` |
 | `effects-libgdx` | render-thread shader compile, passes, deterministic preview | `agent-effects-libgdx` |
 | `effects-mcp` | closed stdio MCP tool catalog | `agent-effects-mcp` |

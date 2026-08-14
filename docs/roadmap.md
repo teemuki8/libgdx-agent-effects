@@ -25,3 +25,8 @@ GPU particles with a disclosed GL2 CPU fallback, 2D/3D decals, distortion and bo
 graphs, native libGDX particle compatibility, cross-family protocol/MCP operations, and a Wings
 ship-trail example with qualification evidence. The detailed bounded contracts and verification
 gates are in `docs/superpowers/plans/2026-08-14-general-vfx-program.md`.
+
+The runtime lifecycle foundation is now implemented: applications create seeded instances with a
+closed anchor set, submit bounded visual events, advance an explicit fixed step, consume immutable
+snapshots, and release capacity through `close()`. It owns no loop, timer, thread, game object, or GL
+resource.
