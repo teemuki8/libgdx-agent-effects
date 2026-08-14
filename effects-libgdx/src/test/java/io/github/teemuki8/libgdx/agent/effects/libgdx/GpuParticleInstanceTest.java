@@ -31,7 +31,7 @@ class GpuParticleInstanceTest {
             float[] clearColor = clearColor();
             try (GpuParticleInstance particles = new GpuParticleInstance(
                     ParticleTestDefinitions.supported(), limits,
-                    new EffectCapabilities(3, 0, 4096, true))) {
+                    new EffectCapabilities(3, 2, 4096, true))) {
                 int first = particles.currentStateTextureHandle();
                 particles.advance(0.25f);
                 assertNotEquals(first, particles.currentStateTextureHandle());
@@ -58,7 +58,7 @@ class GpuParticleInstanceTest {
             ParticleSnapshot first;
             try (GpuParticleInstance particles = new GpuParticleInstance(
                     ParticleTestDefinitions.supported(), limits,
-                    new EffectCapabilities(3, 0, 4096, true), 91L)) {
+                    new EffectCapabilities(3, 2, 4096, true), 91L)) {
                 particles.setAnchor("emitter", 0.25f, 0.5f, 0f);
                 particles.burst(2);
                 particles.advance(0.25f);
@@ -71,7 +71,7 @@ class GpuParticleInstanceTest {
             }
             try (GpuParticleInstance particles = new GpuParticleInstance(
                     ParticleTestDefinitions.supported(), limits,
-                    new EffectCapabilities(3, 0, 4096, true), 91L)) {
+                    new EffectCapabilities(3, 2, 4096, true), 91L)) {
                 particles.setAnchor("emitter", 0.25f, 0.5f, 0f);
                 particles.burst(2);
                 particles.advance(0.25f);
@@ -85,7 +85,7 @@ class GpuParticleInstanceTest {
         GdxTestHost.runGl3(() -> {
             try (GpuParticleInstance particles = new GpuParticleInstance(
                     ParticleTestDefinitions.supported(), EffectsLimits.developmentDefaults(),
-                    new EffectCapabilities(3, 0, 4096, true), 1L)) {
+                    new EffectCapabilities(3, 2, 4096, true), 1L)) {
                 particles.setAnchor("emitter", 0f, 0f, 0f);
                 particles.burst(17);
                 ParticleSnapshot snapshot = particles.snapshot();
@@ -100,14 +100,14 @@ class GpuParticleInstanceTest {
         GdxTestHost.runGl3(() -> {
             try (GpuParticleInstance particles = new GpuParticleInstance(
                     ParticleTestDefinitions.supported(4f), EffectsLimits.developmentDefaults(),
-                    new EffectCapabilities(3, 0, 4096, true), 1L)) {
+                    new EffectCapabilities(3, 2, 4096, true), 1L)) {
                 particles.setAnchor("emitter", 0f, 0f, 0f);
                 particles.advance(0.5f);
                 assertEquals(2, particles.snapshot().particles().size());
             }
             try (GpuParticleInstance particles = new GpuParticleInstance(
                     ParticleTestDefinitions.supported(), EffectsLimits.developmentDefaults(),
-                    new EffectCapabilities(3, 0, 4096, true), 1L)) {
+                    new EffectCapabilities(3, 2, 4096, true), 1L)) {
                 particles.setAnchor("emitter", 0f, 0f, 0f);
                 particles.burst(1);
                 particles.advance(1f);

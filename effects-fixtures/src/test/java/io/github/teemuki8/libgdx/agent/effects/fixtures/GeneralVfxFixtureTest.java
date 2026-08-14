@@ -27,6 +27,12 @@ class GeneralVfxFixtureTest {
                 assertEquals(1L, evidence.particleGeneration());
             }
             assertEquals("APPROXIMATED", evidence.importFidelity());
+
+            GeneralVfxScene.SceneEvidence fallback =
+                    new GeneralVfxScene().renderCpuFallbackEvidence();
+            assertEquals("CPU", fallback.particleBackend());
+            assertEquals("CPU", fallback.particleSimulation());
+            assertTrue(fallback.selectedParticleCount() > 0);
         });
     }
 }

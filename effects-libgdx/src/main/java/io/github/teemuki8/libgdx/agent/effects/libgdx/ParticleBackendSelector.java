@@ -20,15 +20,9 @@ public final class ParticleBackendSelector {
         Objects.requireNonNull(definition, "definition");
         Objects.requireNonNull(capabilities, "capabilities");
         Objects.requireNonNull(fallbackPolicy, "fallbackPolicy");
-        Dimensions dimensions = dimensions(definition.capacity(), capabilities.maxTextureSize());
-        int totalPixels = Math.multiplyExact(dimensions.pixels(), 2);
-        if (totalPixels > maxStateTexturePixels) {
-            throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
-                    "GPU particle state textures exceed configured pixels");
-        }
         List<String> diagnostics = new ArrayList<>();
-        if (!capabilities.supportsGl3()) {
-            diagnostics.add("OpenGL 3 is unavailable; selected deterministic CPU backend");
+        if (!capabilities.supportsDesktopGlsl150()) {
+            diagnostics.add("desktop OpenGL 3.2 with GLSL 150 is unavailable; selected CPU backend");
         }
         if (!capabilities.floatTextures()) {
             diagnostics.add("floating-point state textures are unavailable");
@@ -38,14 +32,33 @@ public final class ParticleBackendSelector {
         if (unsupported) {
             diagnostics.add("turbulence is CPU-only");
         }
-        boolean gpu = diagnostics.isEmpty();
-        if (!gpu && fallbackPolicy == ParticleFallbackPolicy.REQUIRE_GPU) {
-            throw new EffectsException(EffectsException.Kind.INVALID_EFFECT,
-                    String.join("; ", diagnostics));
+        if (!diagnostics.isEmpty()) {
+            if (fallbackPolicy == ParticleFallbackPolicy.REQUIRE_GPU) {
+                throw new EffectsException(EffectsException.Kind.INVALID_EFFECT,
+                        String.join("; ", diagnostics));
+            }
+            return new ParticleBackendEvidence(ParticleBackendEvidence.Backend.CPU,
+                    true, diagnostics, 0);
         }
-        return new ParticleBackendEvidence(gpu ? ParticleBackendEvidence.Backend.GPU_GL3
-                : ParticleBackendEvidence.Backend.CPU, !gpu, diagnostics,
-                gpu ? totalPixels : 0);
+        Dimensions dimensions;
+        int totalPixels;
+        try {
+            dimensions = dimensions(definition.capacity(), capabilities.maxTextureSize());
+            totalPixels = Math.multiplyExact(dimensions.pixels(), 2);
+            if (totalPixels > maxStateTexturePixels) {
+                throw new EffectsException(EffectsException.Kind.LIMIT_EXCEEDED,
+                        "GPU particle state textures exceed configured pixels");
+            }
+        } catch (EffectsException failure) {
+            if (fallbackPolicy == ParticleFallbackPolicy.FALLBACK_CPU) {
+                diagnostics.add(failure.getMessage() + "; selected deterministic CPU backend");
+                return new ParticleBackendEvidence(ParticleBackendEvidence.Backend.CPU,
+                        true, diagnostics, 0);
+            }
+            throw failure;
+        }
+        return new ParticleBackendEvidence(ParticleBackendEvidence.Backend.GPU_GL3,
+                false, diagnostics, totalPixels);
     }
 
     static Dimensions dimensions(int capacity, int maxTextureSize) {

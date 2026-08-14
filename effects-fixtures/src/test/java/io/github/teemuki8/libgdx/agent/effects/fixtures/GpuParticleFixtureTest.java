@@ -24,7 +24,7 @@ class GpuParticleFixtureTest {
         GdxFixtureHost.runGl3(() -> {
             try (GpuParticleInstance particles = new GpuParticleInstance(definition(),
                     EffectsLimits.developmentDefaults(),
-                    new EffectCapabilities(3, 0, 4096, true), 7L)) {
+                    new EffectCapabilities(3, 2, 4096, true), 7L)) {
                 particles.setAnchor("emitter", 0f, 0f, 0f);
                 particles.burst(4);
                 particles.advance(1f / 60f);

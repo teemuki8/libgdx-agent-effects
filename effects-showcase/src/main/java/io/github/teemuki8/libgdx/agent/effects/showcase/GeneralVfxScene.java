@@ -31,6 +31,7 @@ import io.github.teemuki8.libgdx.agent.effects.core.ParticleSnapshot;
 import io.github.teemuki8.libgdx.agent.effects.core.PostProcessGraphDefinition;
 import io.github.teemuki8.libgdx.agent.effects.core.RenderPassDefinition;
 import io.github.teemuki8.libgdx.agent.effects.core.RgbaImage;
+import io.github.teemuki8.libgdx.agent.effects.core.RuntimeLimits;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderSource;
 import io.github.teemuki8.libgdx.agent.effects.core.TrailCap;
 import io.github.teemuki8.libgdx.agent.effects.core.TrailDefinition;
@@ -38,6 +39,8 @@ import io.github.teemuki8.libgdx.agent.effects.core.TrailJoin;
 import io.github.teemuki8.libgdx.agent.effects.core.TrailSnapshot;
 import io.github.teemuki8.libgdx.agent.effects.core.TrailUvMode;
 import io.github.teemuki8.libgdx.agent.effects.importer.libgdx.LibgdxParticleImporter;
+import io.github.teemuki8.libgdx.agent.effects.runtime.CpuParticleInstance;
+import io.github.teemuki8.libgdx.agent.effects.runtime.EffectAnchor;
 import io.github.teemuki8.libgdx.agent.effects.libgdx.BeamRenderer;
 import io.github.teemuki8.libgdx.agent.effects.libgdx.Decal2dRenderer;
 import io.github.teemuki8.libgdx.agent.effects.libgdx.DistortionRenderer;
@@ -76,6 +79,16 @@ public final class GeneralVfxScene {
 
     /** Renders every requested family on the current application render thread. */
     public SceneEvidence renderEvidence() {
+        return renderEvidence(capabilities());
+    }
+
+    /** Renders the same scene while forcing the deterministic CPU particle fallback. */
+    public SceneEvidence renderCpuFallbackEvidence() {
+        return renderEvidence(new EffectCapabilities(2, 0, 1, false,
+                EffectCapabilities.Profile.DESKTOP_OPENGL));
+    }
+
+    private SceneEvidence renderEvidence(EffectCapabilities capabilities) {
         List<ArtifactEvidence> artifacts = new ArrayList<>();
         artifacts.add(new ArtifactEvidence("material", renderMaterial()));
         artifacts.add(new ArtifactEvidence("trail", renderTrail()));
@@ -83,7 +96,6 @@ public final class GeneralVfxScene {
         artifacts.add(new ArtifactEvidence("lightning", renderLightning()));
         artifacts.add(new ArtifactEvidence("cpu-particles", renderParticles("cpu-particles")));
         ParticleDefinition selected = particleDefinition("selected-particles");
-        EffectCapabilities capabilities = capabilities();
         ParticleBackendEvidence backend = ParticleBackendSelector.select(selected, capabilities,
                 ParticleFallbackPolicy.FALLBACK_CPU, LIMITS.maxTexturePixels());
         SelectedParticleEvidence selectedEvidence = renderSelectedParticles(
@@ -94,7 +106,8 @@ public final class GeneralVfxScene {
         artifacts.add(new ArtifactEvidence("post-process", renderPostProcess()));
         ParticleImportResult imported = importParticle();
         return new SceneEvidence(artifacts, backend.backend().name(), imported.fidelity().name(),
-                selectedEvidence.generation(), selectedEvidence.particleCount());
+                selectedEvidence.generation(), selectedEvidence.particleCount(),
+                selectedEvidence.simulation());
     }
 
     /** Stable names of every visual family shown by this scene. */
@@ -189,14 +202,18 @@ public final class GeneralVfxScene {
                 particles.advance(0.1f);
                 ParticleSnapshot snapshot = particles.snapshot();
                 return new SelectedParticleEvidence(renderParticles(definition, snapshot),
-                        particles.generation(), snapshot.particles().size());
+                        particles.generation(), snapshot.particles().size(), "GPU");
             }
         }
-        ParticleSnapshot snapshot = new ParticleSnapshot(definition.name(), List.of(
-                particle(0L, -0.35f, 0f), particle(1L, 0f, 0.35f),
-                particle(2L, 0.35f, 0f)), 0L, 0L);
-        return new SelectedParticleEvidence(renderParticles(definition, snapshot), 0L,
-                snapshot.particles().size());
+        try (CpuParticleInstance particles = new CpuParticleInstance(definition,
+                RuntimeLimits.developmentDefaults(), 91L)) {
+            particles.setAnchor(new EffectAnchor(definition.anchorName(), 0f, 0f, 0f));
+            particles.burst(3);
+            particles.advance(0.1f);
+            ParticleSnapshot snapshot = particles.snapshot();
+            return new SelectedParticleEvidence(renderParticles(definition, snapshot), 0L,
+                    snapshot.particles().size(), "CPU");
+        }
     }
 
     private static int renderDecal() {
@@ -308,9 +325,17 @@ public final class GeneralVfxScene {
     }
 
     private static EffectCapabilities capabilities() {
-        boolean gl3 = Gdx.gl30 != null;
-        return new EffectCapabilities(gl3 ? 3 : 2, 0,
-                Math.max(1, Gdx.graphics.getWidth()), gl3);
+        com.badlogic.gdx.graphics.glutils.GLVersion version = Gdx.graphics.getGLVersion();
+        EffectCapabilities.Profile profile = switch (version.getType()) {
+            case OpenGL -> EffectCapabilities.Profile.DESKTOP_OPENGL;
+            case GLES -> EffectCapabilities.Profile.OPENGL_ES;
+            case WebGL -> EffectCapabilities.Profile.WEBGL;
+            case NONE -> EffectCapabilities.Profile.DESKTOP_OPENGL;
+        };
+        java.nio.IntBuffer maximum = com.badlogic.gdx.utils.BufferUtils.newIntBuffer(1);
+        Gdx.gl.glGetIntegerv(GL20.GL_MAX_TEXTURE_SIZE, maximum);
+        return new EffectCapabilities(version.getMajorVersion(), version.getMinorVersion(),
+                Math.max(1, maximum.get(0)), Gdx.gl30 != null, profile);
     }
 
     private static DistortionFieldDefinition distortionDefinition() {
@@ -417,18 +442,20 @@ public final class GeneralVfxScene {
     /** Immutable evidence spanning every requested family and compatibility boundary. */
     public record SceneEvidence(List<ArtifactEvidence> artifacts,
             String particleBackend, String importFidelity, long particleGeneration,
-            int selectedParticleCount) {
+            int selectedParticleCount, String particleSimulation) {
         public SceneEvidence {
             artifacts = List.copyOf(artifacts);
             Objects.requireNonNull(particleBackend, "particleBackend");
             Objects.requireNonNull(importFidelity, "importFidelity");
+            Objects.requireNonNull(particleSimulation, "particleSimulation");
             if (particleGeneration < 0L || selectedParticleCount < 0) {
                 throw new IllegalArgumentException("invalid selected particle evidence");
             }
         }
     }
 
-    private record SelectedParticleEvidence(int pixels, long generation, int particleCount) {}
+    private record SelectedParticleEvidence(int pixels, long generation, int particleCount,
+            String simulation) {}
 
     @FunctionalInterface
     private interface Draw {
