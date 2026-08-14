@@ -4,6 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectCapabilities;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectCatalog;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectCatalogQuery;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectFamily;
 import io.github.teemuki8.libgdx.agent.effects.core.PixelComparisonSpec;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderTargetProfile;
 import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsBackend;
@@ -115,6 +119,8 @@ public final class EffectsToolHandler implements AutoCloseable {
                 string(arguments, "materialName");
                 assetMappings(arguments);
             }
+            case "effect_catalog_search" -> catalogSearchRequest(arguments);
+            case "effect_catalog_get" -> catalogLookupRequest(arguments);
             default -> {
                 // Tools without arguments have nothing further to decode.
             }
@@ -134,6 +140,8 @@ public final class EffectsToolHandler implements AutoCloseable {
             case "effect_snapshot_summary" -> snapshotSummary(arguments);
             case "effect_import_godot_canvas" -> importGodotCanvas(arguments);
             case "effect_import_particle" -> importParticle(arguments);
+            case "effect_catalog_search" -> catalogSearch(arguments);
+            case "effect_catalog_get" -> catalogGet(arguments);
             default -> throw new IllegalArgumentException("unknown effects tool");
         };
     }
@@ -255,6 +263,33 @@ public final class EffectsToolHandler implements AutoCloseable {
                 .flatMap(this::resultAsync);
     }
 
+    private Mono<McpSchema.CallToolResult> catalogSearch(Map<String, Object> arguments) {
+        EffectCatalog effectCatalog = protocol.catalog();
+        if (effectCatalog == null) {
+            return Mono.just(error("NOT_AVAILABLE",
+                    "effect_catalog_search needs an application-registered catalog"));
+        }
+        Requests.CatalogSearchRequest request = catalogSearchRequest(arguments);
+        var search = effectCatalog.search(new EffectCatalogQuery(request.target(),
+                request.family(), request.tags(), request.limit()));
+        return resultAsync(new Results.CatalogSearchResult(
+                search.matches(), search.truncated()));
+    }
+
+    private Mono<McpSchema.CallToolResult> catalogGet(Map<String, Object> arguments) {
+        EffectCatalog effectCatalog = protocol.catalog();
+        if (effectCatalog == null) {
+            return Mono.just(error("NOT_AVAILABLE",
+                    "effect_catalog_get needs an application-registered catalog"));
+        }
+        Requests.CatalogLookupRequest request = catalogLookupRequest(arguments);
+        return effectCatalog.find(request.id(), request.target())
+                .<Mono<McpSchema.CallToolResult>>map(match -> resultAsync(
+                        new Results.CatalogLookupResult(match)))
+                .orElseGet(() -> Mono.just(error("UNKNOWN_EFFECT",
+                        "effect is unavailable for the requested target")));
+    }
+
     private Mono<McpSchema.CallToolResult> resultAsync(Object value) {
         return Mono.fromCallable(() -> result(value));
     }
@@ -318,6 +353,52 @@ public final class EffectsToolHandler implements AutoCloseable {
         LinkedHashMap<String, String> result = new LinkedHashMap<>();
         items.forEach((key, item) -> result.put((String) key, (String) item));
         return Map.copyOf(result);
+    }
+
+    private static Requests.CatalogSearchRequest catalogSearchRequest(
+            Map<String, Object> values) {
+        String familyName = string(values, "family");
+        EffectFamily family = familyName == null ? null : EffectFamily.valueOf(familyName);
+        return new Requests.CatalogSearchRequest(capabilities(values), family,
+                stringList(values, "tags"), integer(values, "limit"));
+    }
+
+    private static Requests.CatalogLookupRequest catalogLookupRequest(
+            Map<String, Object> values) {
+        return new Requests.CatalogLookupRequest(string(values, "id"), capabilities(values));
+    }
+
+    private static EffectCapabilities capabilities(Map<String, Object> values) {
+        return new EffectCapabilities(integer(values, "glMajor"), integer(values, "glMinor"),
+                integer(values, "maxTextureSize"), bool(values, "floatTextures"),
+                EffectCapabilities.Profile.valueOf(string(values, "profile")));
+    }
+
+    private static int integer(Map<String, Object> values, String key) {
+        Object value = values.get(key);
+        if (!(value instanceof Number number)) {
+            throw new IllegalArgumentException(key + " must be an integer");
+        }
+        return number.intValue();
+    }
+
+    private static boolean bool(Map<String, Object> values, String key) {
+        Object value = values.get(key);
+        if (!(value instanceof Boolean result)) {
+            throw new IllegalArgumentException(key + " must be a boolean");
+        }
+        return result;
+    }
+
+    private static List<String> stringList(Map<String, Object> values, String key) {
+        Object value = values.get(key);
+        if (value == null) {
+            return List.of();
+        }
+        if (!(value instanceof List<?> items)) {
+            throw new IllegalArgumentException(key + " must be an array");
+        }
+        return items.stream().map(item -> (String) item).toList();
     }
 
     /** Stops owned request dispatch. */

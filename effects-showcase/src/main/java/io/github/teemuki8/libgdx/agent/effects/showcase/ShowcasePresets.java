@@ -1,5 +1,6 @@
 package io.github.teemuki8.libgdx.agent.effects.showcase;
 
+import io.github.teemuki8.libgdx.agent.effects.library.BuiltInMaterials;
 import java.util.List;
 
 /** Stable catalog of practical and artistic shaders rendered by the showcase. */
@@ -10,12 +11,8 @@ public final class ShowcasePresets {
         + "uniform float u_time;\nuniform float u_intensity;\n";
 
     private static final List<ShowcasePreset> ALL = List.of(
-        preset("Damage Pulse", "damage-pulse", ShowcasePreset.Group.PRACTICAL, 0.72f, true,
-            "vec2 uv=gl_FragCoord.xy/u_resolution; vec4 c=texture2D(u_source,uv);"
-            + "float d=distance(uv,vec2(0.5)); float pulse=0.65+0.35*sin(u_time*5.0);"
-            + "float edge=smoothstep(0.18,0.72,d);"
-            + "vec3 hurt=vec3(c.r+0.65*edge*pulse,c.g*(1.0-0.45*edge),"
-            + "c.b*(1.0-0.55*edge)); gl_FragColor=vec4(mix(c.rgb,hurt,u_intensity),c.a);"),
+        new ShowcasePreset("Damage Pulse", "damage-pulse", ShowcasePreset.Group.PRACTICAL,
+            BuiltInMaterials.damagePulse().shader().fragment(), 0.72f, true),
         preset("Underwater Distortion", "underwater", ShowcasePreset.Group.PRACTICAL, 0.65f, true,
             "vec2 uv=gl_FragCoord.xy/u_resolution;"
             + "uv.x+=sin(uv.y*34.0+u_time*2.4)*0.012*u_intensity;"
@@ -32,12 +29,8 @@ public final class ShowcasePresets {
             + "vec4 c=texture2D(u_source,uv); float scan=0.78+0.22*sin(gl_FragCoord.y*3.14159);"
             + "float flicker=0.97+0.03*sin(u_time*19.0);"
             + "gl_FragColor=vec4(c.rgb*mix(1.0,scan*flicker,u_intensity),c.a);"),
-        preset("Neon Edges", "neon-edges", ShowcasePreset.Group.FLASHY, 0.78f, false,
-            "vec2 uv=gl_FragCoord.xy/u_resolution; vec2 px=1.0/u_resolution;"
-            + "vec3 c=texture2D(u_source,uv).rgb; vec3 x=texture2D(u_source,uv+vec2(px.x,0.0)).rgb;"
-            + "vec3 y=texture2D(u_source,uv+vec2(0.0,px.y)).rgb;"
-            + "float e=length(c-x)+length(c-y); vec3 neon=vec3(e*0.5,e*1.8,e*2.4)+c*0.25;"
-            + "gl_FragColor=vec4(mix(c,neon,u_intensity),1.0);"),
+        new ShowcasePreset("Neon Edges", "neon-edges", ShowcasePreset.Group.FLASHY,
+            BuiltInMaterials.neonEdges().shader().fragment(), 0.78f, false),
         preset("Chromatic Shockwave", "chromatic-shockwave", ShowcasePreset.Group.FLASHY,
             0.82f, true,
             "vec2 uv=gl_FragCoord.xy/u_resolution; vec2 delta=uv-vec2(0.5); float d=length(delta);"

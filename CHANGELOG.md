@@ -4,6 +4,20 @@ All notable changes follow Keep a Changelog structure.
 
 ## [Unreleased]
 
+### Added
+
+- Optional JDK-only `effects-library` with a deterministic target-aware catalog, six original
+  Apache-2.0 entries qualified for desktop OpenGL, and evidence-gated admission for imported Godot
+  shaders. Applications retain ownership of asset resolution, local catalog composition, and
+  persistence; incompatible or failed imports are not exposed.
+- Closed protocol registration and `effect_catalog_search` / `effect_catalog_get` MCP operations
+  that return only variants compatible with explicit caller-declared capabilities.
+
+### Changed
+
+- The Maven Central release contract now contains seven published modules, including
+  `io.github.teemuki8:agent-effects-library`.
+
 ## [0.2.0] - 2026-08-14
 
 ### Added

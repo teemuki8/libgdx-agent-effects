@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectCapabilities;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsLimits;
 import io.github.teemuki8.libgdx.agent.effects.core.FidelityClassification;
 import io.github.teemuki8.libgdx.agent.effects.core.ImportLimits;
@@ -51,6 +52,17 @@ class ShaderImportQualifierTest {
             assertNotNull(result.preview());
             assertTrue(result.comparison().pass());
             assertEquals(FidelityClassification.VISUALLY_QUALIFIED, result.fidelity());
+            assertEquals(imported.generatedShaders().getFirst().shader(), result.shader());
+            assertEquals(EffectCapabilities.Profile.DESKTOP_OPENGL,
+                    result.capabilities().profile());
+            com.badlogic.gdx.graphics.glutils.GLVersion version =
+                    com.badlogic.gdx.Gdx.graphics.getGLVersion();
+            assertEquals(version.getMajorVersion(),
+                    result.capabilities().glMajor());
+            assertEquals(version.getMinorVersion(), result.capabilities().glMinor());
+            assertTrue(result.capabilities().maxTextureSize() > 0);
+            assertEquals(com.badlogic.gdx.Gdx.gl30 != null,
+                    result.capabilities().floatTextures());
         });
     }
 

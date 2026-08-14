@@ -36,3 +36,17 @@ applicable, render-thread adapters, focused tests, and native qualification. Nat
 particle compatibility, closed protocol/MCP summaries, the cross-family showcase fixture, and the
 Wings ship-trail composition example are included. Publication remains a separately authorized
 operation.
+
+## v0.3.0 — Qualified effect library
+
+The optional JDK-only `effects-library` module adds a deterministic target-aware catalog over the
+existing effect definitions. Its six original Apache-2.0 entries cover post-process materials,
+trails, beams, lightning, and particles. Their bundled variants are qualified for desktop OpenGL
+only; mobile OpenGL ES and WebGL variants remain absent until separately qualified.
+
+Applications own local catalog composition, logical asset resolution, and persistence. Imported
+Godot shaders may be adapted into entries only from compiled, rendered, target-matched
+qualification evidence. Failed or incompatible imports never become discoverable. Unity and Unreal
+shader import are not part of this increment. Generic protocol registration and the closed
+`effect_catalog_search` and `effect_catalog_get` MCP tools expose only target-compatible entries.
+Publication remains a separately authorized operation.

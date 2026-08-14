@@ -1,7 +1,7 @@
 # Sonatype Central compliance
 
 The published group is `io.github.teemuki8`. The published artifacts are `agent-effects-core`,
-`agent-effects-import`, `agent-effects-runtime`, `agent-effects-libgdx`,
+`agent-effects-library`, `agent-effects-import`, `agent-effects-runtime`, `agent-effects-libgdx`,
 `agent-effects-protocol`, and `agent-effects-mcp`. `effects-fixtures` and `effects-showcase` are
 never published.
 
@@ -27,12 +27,12 @@ signing material. Release workflows receive only those named values. They do not
 fixture, accept caller-selected coordinates, or publish automatically after validation.
 
 The staging workflow creates a user-managed Central deployment. The management workflow permits
-publication only when Central reports `VALIDATED`, the PURLs exactly match all six intended
+publication only when Central reports `VALIDATED`, the PURLs exactly match all seven intended
 coordinates, and the downloaded core archive/POM pass the corrected-metadata check.
 
 ## Evidence required for completion
 
 A release report must identify the source commit, version tag, GitHub release, staging run,
 Central deployment ID, validation result, publication run, and final Central state. Public
-verification must cover all six modules and their POM, binary, sources, Javadocs, detached
+verification must cover all seven modules and their POM, binary, sources, Javadocs, detached
 signatures, and checksums. A successful upload or a `PUBLISHING` state is not completion.

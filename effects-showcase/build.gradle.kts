@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation(project(":effects-core"))
+    implementation(project(":effects-library"))
     implementation(project(":effects-libgdx"))
     implementation(project(":effects-runtime"))
     implementation(project(":effects-import"))

@@ -10,7 +10,8 @@ import java.util.Set;
 
 /** Immutable bounded acyclic post-process pass graph. */
 public record PostProcessGraphDefinition(String name, List<String> externalInputs,
-        List<RenderPassDefinition> passes, String output, int framebufferPoolLimit) {
+        List<RenderPassDefinition> passes, String output,
+        int framebufferPoolLimit) implements EffectDefinition {
     private static final int HARD_PASS_CAP = 4096;
 
     public PostProcessGraphDefinition {

@@ -15,6 +15,7 @@ import java.util.zip.ZipFile
 
 val publishedModules = setOf(
     "effects-core",
+    "effects-library",
     "effects-import",
     "effects-runtime",
     "effects-protocol",
@@ -23,6 +24,7 @@ val publishedModules = setOf(
 )
 val artifactNames = mapOf(
     "effects-core" to "agent-effects-core",
+    "effects-library" to "agent-effects-library",
     "effects-import" to "agent-effects-import",
     "effects-runtime" to "agent-effects-runtime",
     "effects-protocol" to "agent-effects-protocol",
@@ -202,6 +204,7 @@ val verifyModuleBoundaries = tasks.register("verifyModuleBoundaries") {
     doLast {
         val allowedProjects = mapOf(
             "effects-core" to emptySet(),
+            "effects-library" to setOf(":effects-core"),
             "effects-runtime" to setOf(":effects-core"),
             "effects-import" to setOf(":effects-core"),
         )

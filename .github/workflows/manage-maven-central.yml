@@ -196,6 +196,7 @@ jobs:
                 "pkg:maven/io.github.teemuki8/agent-effects-core@$version" \
                 "pkg:maven/io.github.teemuki8/agent-effects-import@$version" \
                 "pkg:maven/io.github.teemuki8/agent-effects-libgdx@$version" \
+                "pkg:maven/io.github.teemuki8/agent-effects-library@$version" \
                 "pkg:maven/io.github.teemuki8/agent-effects-mcp@$version" \
                 "pkg:maven/io.github.teemuki8/agent-effects-protocol@$version" \
                 "pkg:maven/io.github.teemuki8/agent-effects-runtime@$version" \

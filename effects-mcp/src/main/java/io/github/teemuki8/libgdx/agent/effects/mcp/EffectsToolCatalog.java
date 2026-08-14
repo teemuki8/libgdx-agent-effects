@@ -1,6 +1,8 @@
 package io.github.teemuki8.libgdx.agent.effects.mcp;
 
 import io.modelcontextprotocol.spec.McpSchema;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectFamily;
+import io.github.teemuki8.libgdx.agent.effects.protocol.EffectsProtocol;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,8 +10,6 @@ import java.util.Set;
 
 /** Immutable catalog of the closed effects tools. */
 public final class EffectsToolCatalog {
-    private static final int MAX_IDENTIFIER = 256;
-
     private static final List<McpSchema.Tool> TOOLS = List.of(
             tool("effect_capabilities",
                     "Report the closed v0.1 tool catalog; no arguments",
@@ -53,7 +53,31 @@ public final class EffectsToolCatalog {
                             "materialName", string(),
                             "assetMappings", assetMappings()),
                             List.of("schemaVersion", "format", "name", "source",
-                                    "anchorName", "materialName", "assetMappings"))));
+                                    "anchorName", "materialName", "assetMappings"))),
+            tool("effect_catalog_search",
+                    "Search compatible registered catalog effects for explicit capabilities",
+                    object(Map.of(
+                            "glMajor", integer(1, 99),
+                            "glMinor", integer(0, 99),
+                            "maxTextureSize", integer(1, 65536),
+                            "floatTextures", bool(),
+                            "profile", capabilityProfile(),
+                            "family", effectFamily(),
+                            "tags", catalogTags(),
+                            "limit", integer(1, EffectsProtocol.MAX_CATALOG_RESULTS)),
+                            List.of("glMajor", "glMinor", "maxTextureSize",
+                                    "floatTextures", "profile", "limit"))),
+            tool("effect_catalog_get",
+                    "Get one compatible registered catalog effect by ID",
+                    object(Map.of(
+                            "id", string(),
+                            "glMajor", integer(1, 99),
+                            "glMinor", integer(0, 99),
+                            "maxTextureSize", integer(1, 65536),
+                            "floatTextures", bool(),
+                            "profile", capabilityProfile()),
+                            List.of("id", "glMajor", "glMinor", "maxTextureSize",
+                                    "floatTextures", "profile"))));
     private static final Map<String, McpSchema.Tool> BY_NAME = index(TOOLS);
 
     /** Returns the exact closed tool names. */
@@ -99,11 +123,13 @@ public final class EffectsToolCatalog {
     }
 
     private static Map<String, Object> string() {
-        return Map.of("type", "string", "minLength", 1, "maxLength", MAX_IDENTIFIER);
+        return Map.of("type", "string", "minLength", 1,
+                "maxLength", EffectsProtocol.MAX_IDENTIFIER_CHARS);
     }
 
     private static Map<String, Object> shaderSource() {
-        return Map.of("type", "string", "minLength", 1, "maxLength", 64 * 1024);
+        return Map.of("type", "string", "minLength", 1,
+                "maxLength", EffectsProtocol.MAX_SHADER_IMPORT_SOURCE_CHARS);
     }
 
     private static Map<String, Object> targetProfiles() {
@@ -129,5 +155,28 @@ public final class EffectsToolCatalog {
                 "type", "object",
                 "maxProperties", 256,
                 "additionalProperties", string());
+    }
+
+    private static Map<String, Object> integer(int minimum, int maximum) {
+        return Map.of("type", "integer", "minimum", minimum, "maximum", maximum);
+    }
+
+    private static Map<String, Object> bool() {
+        return Map.of("type", "boolean");
+    }
+
+    private static Map<String, Object> capabilityProfile() {
+        return Map.of("type", "string", "enum",
+                List.of("DESKTOP_OPENGL", "OPENGL_ES", "WEBGL"));
+    }
+
+    private static Map<String, Object> effectFamily() {
+        return Map.of("type", "string", "enum",
+                java.util.Arrays.stream(EffectFamily.values()).map(Enum::name).toList());
+    }
+
+    private static Map<String, Object> catalogTags() {
+        return Map.of("type", "array", "maxItems", EffectsProtocol.MAX_CATALOG_TAGS,
+                "uniqueItems", true, "items", string());
     }
 }

@@ -3,6 +3,7 @@ dependencies {
     implementation(project(":effects-import"))
     implementation(project(":effects-mcp"))
     implementation(project(":effects-protocol"))
+    testImplementation(project(":effects-library"))
     testImplementation(project(":effects-showcase"))
     implementation(libs.gdx.backend.lwjgl3)
     runtimeOnly("com.badlogicgames.gdx:gdx-platform:${libs.versions.gdx.get()}:natives-desktop")
