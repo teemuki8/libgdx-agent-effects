@@ -43,8 +43,7 @@ must be able to describe entries without depending on bundled content:
 
 - `EffectCatalogEntry`: stable ID and version, family, tags, license/provenance, variants, and
   required logical assets.
-- `EffectCatalogVariant`: one normalized effect definition plus its content digest and qualified
-  target capabilities.
+- `EffectCatalogVariant`: one normalized effect definition plus its qualified target capabilities.
 - `EffectCatalogQuery`: target capabilities plus optional family and tag filters.
 - `EffectCatalog`: bounded deterministic search and exact lookup.
 
@@ -76,10 +75,10 @@ An entry contains only information needed to discover and instantiate a compatib
 - bounded logical `AssetKey` requirements without paths;
 - one or more target-specific variants.
 
-Each variant contains an existing immutable effect definition, default parameters, a digest of the
-definition and required asset declarations, and qualification evidence for explicit capabilities.
-Enhanced and fallback variants may share an entry ID. Selection is deterministic: compatible
-variants are ordered by declared preference and then stable variant ID.
+Each variant contains an existing immutable effect definition, whose fields are its ready-to-use
+defaults, plus qualification for explicit target capabilities. Enhanced and fallback variants may
+share an entry ID. Selection is deterministic: compatible variants are ordered by declared
+preference and then stable variant ID.
 
 The first bundled catalog contains only original project content and assets whose redistribution
 terms are clearly compatible with this Apache-2.0 library. Other legally usable imports may remain
@@ -93,8 +92,8 @@ in a consumer-owned local catalog without being published here.
    It does not register or persist anything.
 3. The consumer or repository qualification fixture compiles and renders the candidate for
    explicit target capabilities using deterministic reference scenes.
-4. Admission verifies the license fields, logical assets, bounds, definition digest, successful
-   compilation, deterministic preview, renderer/backend selection, and qualification evidence.
+4. Admission verifies the license fields, logical assets, bounds, successful compilation,
+   deterministic preview, renderer/backend selection, and qualification evidence.
 5. A successful candidate becomes a catalog variant only for the capabilities it passed. A failed
    candidate remains ordinary import/qualification evidence outside catalog search.
 
@@ -108,8 +107,9 @@ every entry without a compatible qualified variant, then applies optional family
 and finally returns a bounded stable ID order. Exact lookup follows the same compatibility rule;
 it does not reveal an incompatible entry through a different API.
 
-A result supplies the selected normalized variant, defaults, required logical assets, license, and
-provenance. The application resolves those logical assets and owns effect instances, loop calls,
+A result supplies the selected normalized variant, required logical assets, license, and
+provenance. The definition itself contains its defaults. The application resolves those logical
+assets and owns effect instances, loop calls,
 cameras, batches, textures, GL resources, and disposal exactly as it does today.
 
 Protocol and MCP add generic operations equivalent to:
@@ -127,16 +127,15 @@ shader generation alone is not qualification. Initially the curated catalog adve
 desktop OpenGL capabilities covered by the repository's native LWJGL3/Xvfb gates. Android, iOS,
 and web capabilities are added only with real platform-specific verification.
 
-Qualification evidence records the definition digest, target capabilities, selected backend,
-structured compilation result, preview comparison, warnings, and enforced limits. If the effect or
-required asset declaration changes, its digest changes and the old evidence cannot admit it.
+Qualification evidence records the target capabilities, selected backend, structured compilation
+result, preview comparison, warnings, and enforced limits. Bundled entries are requalified by the
+native gate on every change, so the first implementation needs no separate digest format.
 
 ## Validation and failures
 
 Construction rejects duplicate entry or variant IDs, invalid versions, missing license/provenance,
 unknown families, oversized strings or collections, unresolved logical assets, duplicate target
-declarations, stale digests, and unqualified variants. Public values are immutable and defensively
-copy inputs.
+declarations, and unqualified variants. Public values are immutable and defensively copy inputs.
 
 Search does not return partial incompatible results. Bounded result truncation is deterministic
 and reported. Import and qualification failures retain their existing structured diagnostics; the
@@ -147,7 +146,7 @@ catalog adds no parallel error language.
 Focused JDK tests cover:
 
 - immutable construction and configured bounds;
-- duplicate IDs, license requirements, and digest mismatch;
+- duplicate IDs and license requirements;
 - compatible variant selection and exclusion of unsupported targets;
 - stable filtering, ordering, and truncation;
 - exact lookup obeying the same compatibility filter;
