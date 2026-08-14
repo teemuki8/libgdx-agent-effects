@@ -1,5 +1,10 @@
 package io.github.teemuki8.libgdx.agent.effects.libgdx;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.glutils.GLVersion;
+import com.badlogic.gdx.utils.BufferUtils;
+import io.github.teemuki8.libgdx.agent.effects.core.EffectCapabilities;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectDescription;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsException;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectsLimits;
@@ -12,6 +17,7 @@ import io.github.teemuki8.libgdx.agent.effects.core.ShaderImportResult;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderQualificationResult;
 import io.github.teemuki8.libgdx.agent.effects.core.ShaderTargetProfile;
 import io.github.teemuki8.libgdx.agent.effects.core.UniformBinding;
+import java.nio.IntBuffer;
 import java.util.List;
 import java.util.Objects;
 
@@ -47,10 +53,11 @@ public final class ShaderImportQualifier {
                     "reference and comparisonSpec must either both be present or both be absent");
         }
         EffectDescription effect = adapter.adapt(imported, target, bindings, width, height);
+        EffectCapabilities capabilities = observedCapabilities();
         try (CompiledEffect compiled = compiler.compile(effect)) {
             if (!compiled.compiled()) {
-                return new ShaderQualificationResult(target, compiled.diagnostic(), null, null,
-                        FidelityClassification.UNSUPPORTED);
+                return new ShaderQualificationResult(target, effect.shader(), capabilities,
+                        compiled.diagnostic(), null, null, FidelityClassification.UNSUPPORTED);
             }
             RgbaImage preview;
             try (PreviewRenderer renderer = new PreviewRenderer(limits)) {
@@ -59,9 +66,23 @@ public final class ShaderImportQualifier {
             PixelComparisonResult comparison = reference == null ? null
                     : comparer.compare(reference, preview, comparisonSpec, limits);
             FidelityClassification fidelity = fidelity(imported.fidelity(), comparison);
-            return new ShaderQualificationResult(target, compiled.diagnostic(), preview,
-                    comparison, fidelity);
+            return new ShaderQualificationResult(target, effect.shader(), capabilities,
+                    compiled.diagnostic(), preview, comparison, fidelity);
         }
+    }
+
+    private static EffectCapabilities observedCapabilities() {
+        GLVersion version = Gdx.graphics.getGLVersion();
+        EffectCapabilities.Profile profile = switch (version.getType()) {
+            case OpenGL -> EffectCapabilities.Profile.DESKTOP_OPENGL;
+            case GLES -> EffectCapabilities.Profile.OPENGL_ES;
+            case WebGL -> EffectCapabilities.Profile.WEBGL;
+            case NONE -> EffectCapabilities.Profile.UNKNOWN;
+        };
+        IntBuffer maximum = BufferUtils.newIntBuffer(1);
+        Gdx.gl.glGetIntegerv(GL20.GL_MAX_TEXTURE_SIZE, maximum);
+        return new EffectCapabilities(version.getMajorVersion(), version.getMinorVersion(),
+                Math.max(1, maximum.get(0)), Gdx.gl30 != null, profile);
     }
 
     private void requireOwnerThread() {

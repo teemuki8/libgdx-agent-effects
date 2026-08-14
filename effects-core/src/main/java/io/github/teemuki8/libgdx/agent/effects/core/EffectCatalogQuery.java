@@ -20,18 +20,21 @@ public record EffectCatalogQuery(EffectCapabilities target, EffectFamily family,
         if (tags.size() > HARD_LIMIT) {
             throw new IllegalArgumentException("catalog query tags are outside hard bounds");
         }
-        tags = List.copyOf(tags);
         Set<String> unique = new HashSet<>();
         String previous = null;
         for (String tag : tags) {
+            if (tag == null) {
+                throw new IllegalArgumentException("query tags must be unique and sorted");
+            }
             if (tag.length() > HARD_LIMIT) {
                 throw new IllegalArgumentException("catalog query text is outside hard bounds");
             }
-            if (tag == null || tag.isBlank() || !unique.add(tag)
+            if (tag.isBlank() || !unique.add(tag)
                     || previous != null && previous.compareTo(tag) >= 0) {
                 throw new IllegalArgumentException("query tags must be unique and sorted");
             }
             previous = tag;
         }
+        tags = List.copyOf(tags);
     }
 }

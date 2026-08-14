@@ -53,13 +53,15 @@ Unity or Unreal shader importer. Import output is evidence, not automatic regist
 1. Import bounded source text with `effects-import`.
 2. Compile and render the generated target on the application render thread with
    `ShaderImportQualifier` from `effects-libgdx`.
-3. Pass the immutable import result, qualification result, and the capabilities actually qualified
-   to `QualifiedShaderCatalogEntry.create`.
+3. Pass the immutable import result and qualification result to
+   `QualifiedShaderCatalogEntry.create`. The qualification evidence already contains the exact
+   shader source and live GL capabilities that were observed.
 4. Add the returned entry to an application-owned catalog.
 
 Admission requires a supported imported material, a compiled structured diagnostic, a rendered
 preview, exactly one generated shader matching the qualified target, and explicit non-unknown
-capabilities. `APPROXIMATED` and `UNQUALIFIED` fidelity remain admissible evidence; unsupported,
+observed capabilities. Its shader source must exactly match that generated target.
+`APPROXIMATED` and `UNQUALIFIED` fidelity remain admissible evidence; unsupported,
 failed, previewless, or target-mismatched results are rejected and never appear in the catalog.
 The caller supplies provenance, license, and attribution metadata and remains responsible for its
 accuracy.

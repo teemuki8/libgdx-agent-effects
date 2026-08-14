@@ -226,6 +226,13 @@ class EffectCatalogModelTest {
     }
 
     @Test
+    void queryRejectsNullTagAsInvalidInput() {
+        assertThrows(IllegalArgumentException.class, () -> new EffectCatalogQuery(
+                CatalogTestFixtures.desktopGl2(), null,
+                Collections.singletonList(null), 8));
+    }
+
+    @Test
     void searchResultRejectsHardOversizedMatchesBeforeCopying() {
         EffectCatalogEntry entry = CatalogTestFixtures.entry("ship-trail", List.of(),
                 trailVariant());

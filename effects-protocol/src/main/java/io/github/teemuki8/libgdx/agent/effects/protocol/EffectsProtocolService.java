@@ -111,39 +111,37 @@ public final class EffectsProtocolService {
     }
 
     private static Results.EffectSummaryResult summarize(EffectDefinition definition) {
-        if (definition instanceof Material2dDefinition material) {
-            return new Results.EffectSummaryResult(material.name(), EffectFamily.MATERIAL_2D,
+        return switch (definition) {
+            case Material2dDefinition material -> new Results.EffectSummaryResult(
+                    material.name(), EffectFamily.MATERIAL_2D,
                     material.textures().size(), List.of("shader", "sprite", "mesh"));
-        }
-        if (definition instanceof Material3dDefinition material) {
-            return new Results.EffectSummaryResult(material.name(), EffectFamily.MATERIAL_3D,
+            case Material3dDefinition material -> new Results.EffectSummaryResult(
+                    material.name(), EffectFamily.MATERIAL_3D,
                     material.textures().size(), List.of("shader", "depth", "culling"));
-        }
-        if (definition instanceof TrailDefinition trail) {
-            return new Results.EffectSummaryResult(trail.name(), EffectFamily.TRAIL,
+            case TrailDefinition trail -> new Results.EffectSummaryResult(
+                    trail.name(), EffectFamily.TRAIL,
                     trail.pointLimit(), List.of(trail.join().name(), trail.cap().name(),
                             trail.uvMode().name()));
-        }
-        if (definition instanceof BeamDefinition beam) {
-            return new Results.EffectSummaryResult(beam.name(), EffectFamily.BEAM,
+            case BeamDefinition beam -> new Results.EffectSummaryResult(
+                    beam.name(), EffectFamily.BEAM,
                     beam.segmentLimit(), List.of("startAnchor", "endAnchor"));
-        }
-        if (definition instanceof LightningDefinition lightning) {
-            return new Results.EffectSummaryResult(lightning.name(), EffectFamily.LIGHTNING,
+            case LightningDefinition lightning -> new Results.EffectSummaryResult(
+                    lightning.name(), EffectFamily.LIGHTNING,
                     lightning.segmentLimit() + lightning.branchLimit(),
                     List.of("seeded", "branches=" + lightning.branchLimit()));
-        }
-        if (definition instanceof ParticleDefinition particles) {
-            return new Results.EffectSummaryResult(particles.name(), EffectFamily.PARTICLE,
+            case ParticleDefinition particles -> new Results.EffectSummaryResult(
+                    particles.name(), EffectFamily.PARTICLE,
                     particles.capacity(), List.of("cpu", "gpuFallback",
                             particles.capacityPolicy().name()));
-        }
-        if (definition instanceof DecalDefinition decals) {
-            return new Results.EffectSummaryResult(decals.name(), EffectFamily.DECAL,
+            case DecalDefinition decals -> new Results.EffectSummaryResult(
+                    decals.name(), EffectFamily.DECAL,
                     decals.capacity(), List.of("2dOr3d", "ordered", "lifetime"));
-        }
-        DistortionFieldDefinition distortion = (DistortionFieldDefinition) definition;
-        return new Results.EffectSummaryResult(distortion.name(), EffectFamily.DISTORTION,
-                1, List.of("sceneCapture", "vectorField", "passGraph"));
+            case DistortionFieldDefinition distortion -> new Results.EffectSummaryResult(
+                    distortion.name(), EffectFamily.DISTORTION, 1,
+                    List.of("sceneCapture", "vectorField", "passGraph"));
+            case PostProcessGraphDefinition graph -> new Results.EffectSummaryResult(
+                    graph.name(), EffectFamily.POST_PROCESS_GRAPH, graph.passes().size(),
+                    List.of("acyclic", "framebufferPool=" + graph.framebufferPoolLimit()));
+        };
     }
 }

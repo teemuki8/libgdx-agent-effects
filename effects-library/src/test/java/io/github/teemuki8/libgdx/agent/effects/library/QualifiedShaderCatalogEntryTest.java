@@ -34,8 +34,7 @@ class QualifiedShaderCatalogEntryTest {
 
     @Test
     void createsEntryOnlyFromCompiledRenderedMatchingTarget() {
-        EffectCatalogEntry entry = create(importedShader(), successfulQualification(),
-                desktopGl2());
+        EffectCatalogEntry entry = create(importedShader(), successfulQualification());
 
         assertEquals(EffectFamily.MATERIAL_2D, entry.family());
         assertTrue(entry.variants().get(0).supports(desktopGl2()));
@@ -61,7 +60,7 @@ class QualifiedShaderCatalogEntryTest {
                 FidelityClassification.UNQUALIFIED);
 
         assertEquals(EffectFamily.MATERIAL_2D,
-                create(approximated, renderedWithoutReference, desktopGl2()).family());
+                create(approximated, renderedWithoutReference).family());
     }
 
     @Test
@@ -74,9 +73,9 @@ class QualifiedShaderCatalogEntryTest {
                 FidelityClassification.UNSUPPORTED);
 
         assertThrows(IllegalArgumentException.class,
-                () -> create(unsupported, successfulQualification(), desktopGl2()));
+                () -> create(unsupported, successfulQualification()));
         assertThrows(IllegalArgumentException.class,
-                () -> create(importedShader(), unsupportedQualification, desktopGl2()));
+                () -> create(importedShader(), unsupportedQualification));
     }
 
     @Test
@@ -89,9 +88,9 @@ class QualifiedShaderCatalogEntryTest {
                 FidelityClassification.UNQUALIFIED);
 
         assertThrows(IllegalArgumentException.class,
-                () -> create(importedShader(), failed, desktopGl2()));
+                () -> create(importedShader(), failed));
         assertThrows(IllegalArgumentException.class,
-                () -> create(importedShader(), previewless, desktopGl2()));
+                () -> create(importedShader(), previewless));
     }
 
     @Test
@@ -103,26 +102,39 @@ class QualifiedShaderCatalogEntryTest {
                         generated(ShaderTargetProfile.GLSL_ES_100)));
 
         assertThrows(IllegalArgumentException.class,
-                () -> create(missing, successfulQualification(), desktopGl2()));
+                () -> create(missing, successfulQualification()));
         assertThrows(IllegalArgumentException.class,
-                () -> create(duplicate, successfulQualification(), desktopGl2()));
+                () -> create(duplicate, successfulQualification()));
     }
 
     @Test
-    void rejectsUnknownCallerDeclaredCapabilities() {
+    void rejectsQualificationBoundToDifferentGeneratedShader() {
+        ShaderQualificationResult differentShader = new ShaderQualificationResult(
+                ShaderTargetProfile.GLSL_ES_100,
+                new ShaderSource("different vertex", "different fragment"), desktopGl2(),
+                compiled(), preview(), null, FidelityClassification.UNQUALIFIED);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> create(importedShader(), differentShader));
+    }
+
+    @Test
+    void rejectsUnknownObservedCapabilities() {
         EffectCapabilities unknown = new EffectCapabilities(2, 0, 2048, false,
                 EffectCapabilities.Profile.UNKNOWN);
 
         assertThrows(IllegalArgumentException.class,
-                () -> create(importedShader(), successfulQualification(), unknown));
+                () -> new ShaderQualificationResult(ShaderTargetProfile.GLSL_ES_100,
+                        generated(ShaderTargetProfile.GLSL_ES_100).shader(), unknown,
+                        compiled(), preview(), null, FidelityClassification.UNQUALIFIED));
     }
 
     private static EffectCatalogEntry create(ShaderImportResult imported,
-            ShaderQualificationResult qualification, EffectCapabilities capabilities) {
+            ShaderQualificationResult qualification) {
         return QualifiedShaderCatalogEntry.create(
                 "water-ripple", "1.0.0", "Water Ripple", "Imported water material",
                 List.of("water"), "MIT", "Example author", " ",
-                imported, qualification, capabilities, CATALOG_LIMITS, EFFECTS_LIMITS);
+                imported, qualification, CATALOG_LIMITS, EFFECTS_LIMITS);
     }
 
     private static ShaderImportResult importedShader() {
@@ -154,7 +166,8 @@ class QualifiedShaderCatalogEntryTest {
 
     private static ShaderQualificationResult qualification(ShaderTargetProfile target,
             ShaderDiagnostic diagnostic, RgbaImage preview, FidelityClassification fidelity) {
-        return new ShaderQualificationResult(target, diagnostic, preview, null, fidelity);
+        return new ShaderQualificationResult(target, generated(target).shader(), desktopGl2(),
+                diagnostic, preview, null, fidelity);
     }
 
     private static ShaderDiagnostic compiled() {

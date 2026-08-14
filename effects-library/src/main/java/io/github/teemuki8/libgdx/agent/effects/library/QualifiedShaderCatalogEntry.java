@@ -1,7 +1,6 @@
 package io.github.teemuki8.libgdx.agent.effects.library;
 
 import io.github.teemuki8.libgdx.agent.effects.core.CatalogLimits;
-import io.github.teemuki8.libgdx.agent.effects.core.EffectCapabilities;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectCatalogEntry;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectCatalogVariant;
 import io.github.teemuki8.libgdx.agent.effects.core.EffectFamily;
@@ -23,11 +22,9 @@ public final class QualifiedShaderCatalogEntry {
             String displayName, String description, List<String> tags,
             String license, String provenance, String attributionUrl,
             ShaderImportResult imported, ShaderQualificationResult qualification,
-            EffectCapabilities capabilities, CatalogLimits catalogLimits,
-            EffectsLimits effectsLimits) {
+            CatalogLimits catalogLimits, EffectsLimits effectsLimits) {
         Objects.requireNonNull(imported, "imported");
         Objects.requireNonNull(qualification, "qualification");
-        Objects.requireNonNull(capabilities, "capabilities");
         Material2dDefinition importedMaterial = imported.material();
         if (importedMaterial == null
                 || imported.fidelity() == FidelityClassification.UNSUPPORTED) {
@@ -38,9 +35,6 @@ public final class QualifiedShaderCatalogEntry {
                 || qualification.preview() == null) {
             throw new IllegalArgumentException("shader qualification is not admissible");
         }
-        if (capabilities.profile() == EffectCapabilities.Profile.UNKNOWN) {
-            throw new IllegalArgumentException("qualified capabilities must be explicit");
-        }
         List<GeneratedShader> matching = imported.generatedShaders().stream()
                 .filter(generated -> generated.profile() == qualification.target())
                 .toList();
@@ -48,13 +42,18 @@ public final class QualifiedShaderCatalogEntry {
             throw new IllegalArgumentException(
                     "qualification target must have exactly one generated shader");
         }
+        GeneratedShader generated = matching.getFirst();
+        if (!generated.shader().equals(qualification.shader())) {
+            throw new IllegalArgumentException(
+                    "qualification shader does not match generated shader");
+        }
         Material2dDefinition material = new Material2dDefinition(id,
-                matching.get(0).shader(), importedMaterial.blendMode(),
+                generated.shader(), importedMaterial.blendMode(),
                 importedMaterial.uniforms(), importedMaterial.textures());
         String variantId = qualification.target().name().toLowerCase(Locale.ROOT)
                 .replace('_', '-');
         EffectCatalogVariant variant = new EffectCatalogVariant(variantId, 0,
-                material, List.of(capabilities));
+                material, List.of(qualification.capabilities()));
         String normalizedAttribution = attributionUrl == null || attributionUrl.isBlank()
                 ? null : attributionUrl;
         return new EffectCatalogEntry(id, version, displayName, description,
